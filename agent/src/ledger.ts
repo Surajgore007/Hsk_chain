@@ -89,21 +89,158 @@ export class DecisionLedger {
         this.decisions = JSON.parse(data);
       }
       if (!this.decisions || this.decisions.length === 0) {
-        // Pre-populate with verified demo run fixtures so the dashboard is immediately populated
-        const demoPaths = [
-          resolve(process.cwd(), "../fixtures/demo-run.json"),
-          resolve(process.cwd(), "fixtures/demo-run.json"),
-        ];
-        for (const p of demoPaths) {
-          if (existsSync(p)) {
-            const raw = readFileSync(p, "utf-8");
-            this.decisions = JSON.parse(raw);
-            break;
+        if (process.env.REPLAY === "true") {
+          // Pre-populate with verified demo run fixtures ONLY when explicitly in REPLAY mode
+          const demoPaths = [
+            resolve(process.cwd(), "../fixtures/demo-run.json"),
+            resolve(process.cwd(), "fixtures/demo-run.json"),
+          ];
+          for (const p of demoPaths) {
+            if (existsSync(p)) {
+              const raw = readFileSync(p, "utf-8");
+              this.decisions = JSON.parse(raw);
+              break;
+            }
           }
         }
       }
     } catch {
       this.decisions = [];
+    }
+  }
+
+  /**
+   * Rebuild or sync ledger from on-chain TradeExecuted and TradeRejected event logs.
+   * Guarantees stateless recovery on fresh container boot (e.g. Render).
+   */
+  public rebuildFromOnchainLogs(execLogs: any[], rejLogs: any[], deployments: any): void {
+    const existingTx = new Set(this.decisions.map((d) => d.txHash?.toLowerCase()).filter(Boolean));
+    const existingIntent = new Set(this.decisions.map((d) => d.intentHash?.toLowerCase()).filter(Boolean));
+
+    const newRecords: DecisionRecord[] = [];
+
+    // 1. Process TradeExecuted logs
+    for (const log of execLogs) {
+      const tx = (log.transactionHash || "").toLowerCase();
+      const ih = (log.args?.intentHash || "").toLowerCase();
+
+      if (existingTx.has(tx) || (ih && existingIntent.has(ih))) {
+        // Sync any missing on-chain realization stats to cached entry
+        const existing = this.decisions.find(
+          (d) => (d.txHash && d.txHash.toLowerCase() === tx) || (d.intentHash && d.intentHash.toLowerCase() === ih)
+        );
+        if (existing) {
+          existing.txHash = log.transactionHash;
+          existing.amountOutRealized = log.args.amountOut?.toString();
+          if (log.args.quotedAmountOut && BigInt(log.args.quotedAmountOut) > 0n) {
+            const diff = BigInt(log.args.quotedAmountOut) - BigInt(log.args.amountOut);
+            const errBps = Number((diff * 10000n) / BigInt(log.args.quotedAmountOut));
+            existing.estimateErrorBps = errBps;
+            existing.realizedSlippageBps = errBps;
+          }
+        }
+        continue;
+      }
+
+      const args = log.args;
+      const isBaseSold = args.tokenIn.toLowerCase() === (deployments?.whsk || "").toLowerCase();
+      const side = isBaseSold ? "SELL" : "BUY";
+      const isTrimmed = Number(args.reasonCode) === 1;
+
+      const rec: DecisionRecord = {
+        id: `onchain-exec-${log.transactionHash.slice(0, 10)}`,
+        ts: Date.now(),
+        source: "SIGNAL",
+        pair: "WHSK/tUSDT",
+        side,
+        requestedAmountIn: args.amountIn.toString(),
+        decidedAmountIn: args.amountIn.toString(),
+        decision: isTrimmed ? "EXECUTE_TRIMMED" : "EXECUTE_FULL",
+        reasonCode: isTrimmed ? "TRIMMED_TO_FIT" : "OK",
+        humanReason: isTrimmed
+          ? "Trade trimmed by Fathom quoter to fit active impact budget ceiling"
+          : "Full trade executed within active impact budget ceiling",
+        spot: "87051",
+        ref: "87528",
+        devBps: "0",
+        depthCurve: [],
+        impactBudgetBps: 60,
+        priceImpactBpsAtRequested: "0",
+        priceImpactBpsAtDecided: "0",
+        quotedOut: args.quotedAmountOut ? args.quotedAmountOut.toString() : "0",
+        minOut: args.amountOutMin ? args.amountOutMin.toString() : "0",
+        quoteBlock: log.blockNumber ? log.blockNumber.toString() : "0",
+        intentHash: args.intentHash,
+        txHash: log.transactionHash,
+        amountOutRealized: args.amountOut ? args.amountOut.toString() : "0",
+        realizedSlippageBps:
+          args.quotedAmountOut && BigInt(args.quotedAmountOut) > 0n
+            ? Number(((BigInt(args.quotedAmountOut) - BigInt(args.amountOut)) * 10000n) / BigInt(args.quotedAmountOut))
+            : 0,
+        estimateErrorBps:
+          args.quotedAmountOut && BigInt(args.quotedAmountOut) > 0n
+            ? Number(((BigInt(args.quotedAmountOut) - BigInt(args.amountOut)) * 10000n) / BigInt(args.quotedAmountOut))
+            : 0,
+        lossAvoidedQuote: "0",
+        modeLabel: "LIVE HSK TESTNET (own-seeded pool)",
+      };
+      newRecords.push(rec);
+      if (tx) existingTx.add(tx);
+      if (ih) existingIntent.add(ih);
+    }
+
+    // 2. Process TradeRejected logs
+    for (const log of rejLogs) {
+      const tx = (log.transactionHash || "").toLowerCase();
+      const ih = (log.args?.intentHash || "").toLowerCase();
+
+      if (existingTx.has(tx) || (ih && existingIntent.has(ih))) {
+        continue;
+      }
+
+      const args = log.args;
+      const isBaseSold = args.tokenIn.toLowerCase() === (deployments?.whsk || "").toLowerCase();
+      const side = isBaseSold ? "SELL" : "BUY";
+      const reasonCodeStr = Number(args.reasonCode) === 2 ? "IMPACT_TOO_HIGH" : `REASON_${args.reasonCode}`;
+
+      const rec: DecisionRecord = {
+        id: `onchain-ref-${log.transactionHash.slice(0, 10)}`,
+        ts: Date.now(),
+        source: "CHAT",
+        pair: "WHSK/tUSDT",
+        side,
+        requestedAmountIn: args.requestedAmountIn ? args.requestedAmountIn.toString() : "0",
+        decidedAmountIn: "0",
+        decision: "NO_TRADE",
+        reasonCode: reasonCodeStr,
+        humanReason: `Order refused on-chain: simulated impact (${args.impactBpsAtRequested} bps) exceeds budget ceiling`,
+        spot: "87051",
+        ref: "87528",
+        devBps: "0",
+        depthCurve: [],
+        impactBudgetBps: 60,
+        priceImpactBpsAtRequested: args.impactBpsAtRequested ? args.impactBpsAtRequested.toString() : "0",
+        priceImpactBpsAtDecided: "0",
+        quotedOut: "0",
+        minOut: "0",
+        quoteBlock: args.quoteBlock ? args.quoteBlock.toString() : (log.blockNumber ? log.blockNumber.toString() : "0"),
+        intentHash: args.intentHash,
+        txHash: log.transactionHash,
+        amountOutRealized: "0",
+        realizedSlippageBps: 0,
+        estimateErrorBps: 0,
+        lossAvoidedQuote: "0",
+        modeLabel: "LIVE HSK TESTNET (own-seeded pool)",
+      };
+      newRecords.push(rec);
+      if (tx) existingTx.add(tx);
+      if (ih) existingIntent.add(ih);
+    }
+
+    if (newRecords.length > 0) {
+      // Put newer records at front
+      this.decisions = [...newRecords, ...this.decisions];
+      this.save();
     }
   }
 

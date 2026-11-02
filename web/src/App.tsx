@@ -23,6 +23,9 @@ import type {
 type AppFlow = "HERO" | "ONBOARDING" | "LOADING" | "TERMINAL";
 type InspectorTab = "PROOF" | "DEPTH" | "PORTFOLIO" | "LEDGER" | "POLICY";
 
+// API Base URL from Vite env (supports Vercel frontend calling Render backend)
+const API_BASE = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+
 export function App() {
   // ── Flow State Machine ─────────────────────────────────────────────────────
   const [flow, setFlow] = useState<AppFlow>(() => {
@@ -34,6 +37,7 @@ export function App() {
   });
 
   const [isReOnboarding, setIsReOnboarding] = useState(false);
+  const [isBackendWaking, setIsBackendWaking] = useState(false);
 
   // ── User Profile ──────────────────────────────────────────────────────────
   const [userProfile, setUserProfile] = useState<UserProfile | null>(() => {
@@ -110,27 +114,41 @@ export function App() {
 
   // ── API helpers ───────────────────────────────────────────────────────────
   const fetchData = async () => {
+    const wakingTimer = setTimeout(() => {
+      setIsBackendWaking(true);
+    }, 3000);
+
     try {
       const [sRes, pRes, dRes, scRes, dpRes] = await Promise.all([
-        fetch("/api/state").then((r) => (r.ok ? r.json() : null)).catch(() => null),
-        fetch("/api/portfolio").then((r) => (r.ok ? r.json() : null)).catch(() => null),
-        fetch("/api/decisions?limit=50").then((r) => (r.ok ? r.json() : null)).catch(() => null),
-        fetch("/api/scorecard").then((r) => (r.ok ? r.json() : null)).catch(() => null),
-        fetch("/api/depth").then((r) => (r.ok ? r.json() : null)).catch(() => null),
+        fetch(`${API_BASE}/api/state`).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+        fetch(`${API_BASE}/api/portfolio`).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+        fetch(`${API_BASE}/api/decisions?limit=50`).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+        fetch(`${API_BASE}/api/scorecard`).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+        fetch(`${API_BASE}/api/depth`).then((r) => (r.ok ? r.json() : null)).catch(() => null),
       ]);
       if (sRes) setState(sRes);
       if (pRes) setPortfolio(pRes);
       if (dRes) setDecisions(dRes);
       if (scRes) setScorecard(scRes);
       if (dpRes?.curve) setDepthCurve(dpRes.curve);
-    } catch {}
+    } catch {
+    } finally {
+      clearTimeout(wakingTimer);
+      setIsBackendWaking(false);
+    }
   };
 
   useEffect(() => {
     fetchData();
+
+    // 8-second polling timer — continuous updates without relying on SSE
+    const pollInterval = setInterval(() => {
+      fetchData();
+    }, 8000);
+
     let eventSource: EventSource | null = null;
     try {
-      eventSource = new EventSource("/api/stream");
+      eventSource = new EventSource(`${API_BASE}/api/stream`);
       eventSource.addEventListener("decision", (e) => {
         try {
           const dec = JSON.parse(e.data);
@@ -140,7 +158,11 @@ export function App() {
       });
       eventSource.onerror = () => {};
     } catch {}
-    return () => eventSource?.close();
+
+    return () => {
+      clearInterval(pollInterval);
+      eventSource?.close();
+    };
   }, []);
 
   // ── Chat ──────────────────────────────────────────────────────────────────
@@ -153,8 +175,13 @@ export function App() {
     };
     setMessages((prev) => [...prev, userMsg]);
     setIsLoading(true);
+
+    const wakingTimer = setTimeout(() => {
+      setIsBackendWaking(true);
+    }, 3000);
+
     try {
-      const res = await fetch("/api/chat", {
+      const res = await fetch(`${API_BASE}/api/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -198,14 +225,20 @@ export function App() {
         },
       ]);
     } finally {
+      clearTimeout(wakingTimer);
+      setIsBackendWaking(false);
       setIsLoading(false);
     }
   };
 
   const handleConfirmTrade = async (previewId: string) => {
     setIsLoading(true);
+    const wakingTimer = setTimeout(() => {
+      setIsBackendWaking(true);
+    }, 3000);
+
     try {
-      const res = await fetch("/api/confirm", {
+      const res = await fetch(`${API_BASE}/api/confirm`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ previewId }),
@@ -243,6 +276,8 @@ export function App() {
         fetchData();
       }
     } finally {
+      clearTimeout(wakingTimer);
+      setIsBackendWaking(false);
       setIsLoading(false);
     }
   };
@@ -259,7 +294,7 @@ export function App() {
   };
 
   const triggerMover = async (action: "PUSH_PRICE_DOWN" | "PUSH_PRICE_UP") => {
-    await fetch("/api/demo/mover", {
+    await fetch(`${API_BASE}/api/demo/mover`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action }),
@@ -361,6 +396,15 @@ export function App() {
   // ── TERMINAL ──────────────────────────────────────────────────────────────
   return (
     <div className="h-screen w-screen flex flex-col overflow-hidden bg-background text-on-surface font-sans">
+      {isBackendWaking && (
+        <div className="bg-amber-500/15 border-b border-amber-500/30 text-amber-800 dark:text-amber-200 px-4 py-1.5 text-xs flex items-center justify-center gap-2 font-mono shrink-0 z-50">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />
+          </span>
+          <span>⚡ Backend waking up (Render free tier spin-up ~30s)... Please wait.</span>
+        </div>
+      )}
       <TopBar
         state={state}
         onToggleAuto={handleToggleAuto}

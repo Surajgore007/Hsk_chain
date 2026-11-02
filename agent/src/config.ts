@@ -58,6 +58,7 @@ export function loadDeployments(): Deployments | null {
     const candidates = [
       resolve(process.cwd(), "deployments/testnet.json"),
       resolve(process.cwd(), "../deployments/testnet.json"),
+      resolve(process.cwd(), "agent/deployments/testnet.json"),
     ];
     for (const depFile of candidates) {
       if (existsSync(depFile)) {

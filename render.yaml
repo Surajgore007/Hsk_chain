@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: fathom-agent
+    runtime: node
+    plan: free
+    rootDir: agent
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: RPC_TESTNET
+        value: https://testnet.hsk.xyz
+      - key: RPC_MAINNET_READONLY
+        value: https://mainnet.hsk.xyz
+      - key: CHAIN_ID
+        value: "133"
+      - key: DEMO_MODE
+        value: "true"
+      - key: RECORD_REFUSALS_ONCHAIN
+        value: auto
+      - key: OPERATOR_PK
+        sync: false
+      - key: MOVER_PK
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: ADMIN_TOKEN
+        sync: false
+      - key: ALLOWED_ORIGIN
+        sync: false

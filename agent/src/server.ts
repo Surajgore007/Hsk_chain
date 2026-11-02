@@ -39,20 +39,75 @@ import { ReplayEngine } from "./replay.js";
 const app = express();
 app.use(express.json());
 
-// CORS for local web development
+// Dynamic CORS supporting local development and production Vercel frontend via ALLOWED_ORIGIN
+const allowedOriginEnv = process.env.ALLOWED_ORIGIN;
 app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+  const origin = req.headers.origin;
+  if (!allowedOriginEnv || allowedOriginEnv === "*") {
+    res.header("Access-Control-Allow-Origin", origin || "*");
+  } else {
+    const allowedList = allowedOriginEnv.split(",").map((s) => s.trim().toLowerCase());
+    if (origin && (allowedList.includes(origin.toLowerCase()) || allowedList.includes("*"))) {
+      res.header("Access-Control-Allow-Origin", origin);
+    } else if (!origin) {
+      res.header("Access-Control-Allow-Origin", "*");
+    } else {
+      res.header("Access-Control-Allow-Origin", allowedList[0]);
+    }
+  }
+  res.header("Access-Control-Allow-Credentials", "true");
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Origin, X-Requested-With, Content-Type, Accept, Authorization, x-admin-token"
+  );
   res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   if (req.method === "OPTIONS") return res.sendStatus(200);
   next();
 });
+
+// In-memory sliding-window IP rate limiter
+function createRateLimiter(windowMs: number, maxRequests: number, endpointName = "endpoint") {
+  const ipHits = new Map<string, { count: number; resetAt: number }>();
+  const timer = setInterval(() => {
+    const now = Date.now();
+    for (const [ip, entry] of ipHits.entries()) {
+      if (now > entry.resetAt) ipHits.delete(ip);
+    }
+  }, 60000);
+  timer.unref?.();
+
+  return (req: Request, res: Response, next: () => void) => {
+    const forwarded = req.headers["x-forwarded-for"];
+    const ip = (typeof forwarded === "string" ? forwarded.split(",")[0].trim() : req.socket.remoteAddress) || "unknown";
+    const now = Date.now();
+    let entry = ipHits.get(ip);
+    if (!entry || now > entry.resetAt) {
+      entry = { count: 1, resetAt: now + windowMs };
+      ipHits.set(ip, entry);
+      return next();
+    }
+    if (entry.count >= maxRequests) {
+      const retryAfter = Math.ceil((entry.resetAt - now) / 1000);
+      res.setHeader("Retry-After", retryAfter);
+      return res.status(429).json({
+        error: `Rate limit exceeded for ${endpointName}. Try again in ${retryAfter}s.`,
+        retryAfterSeconds: retryAfter,
+      });
+    }
+    entry.count++;
+    next();
+  };
+}
+
+const chatRateLimiter = createRateLimiter(60_000, 30, "/api/chat");
+const confirmRateLimiter = createRateLimiter(60_000, 20, "/api/confirm");
 
 // Load deployments if available
 let deployments: Deployments | null = null;
 const depCandidates = [
   resolve(process.cwd(), "deployments/testnet.json"),
   resolve(process.cwd(), "../deployments/testnet.json"),
+  resolve(process.cwd(), "agent/deployments/testnet.json"),
 ];
 for (const p of depCandidates) {
   if (existsSync(p)) {
@@ -69,6 +124,7 @@ const mainnetClient = makeMainnetClient();
 let executor: OnchainExecutor | null = null;
 let moverWalletClient: any = null;
 let moverAccount: any = null;
+let ownerWalletClient: any = null;
 
 if (deployments) {
   const opPk = (process.env.OPERATOR_PK || process.env.OWNER_PK) as `0x${string}` | undefined;
@@ -82,6 +138,12 @@ if (deployments) {
     const { client, account } = makeWalletClient(movPk);
     moverWalletClient = client;
     moverAccount = account;
+  }
+
+  const ownPk = process.env.OWNER_PK as `0x${string}` | undefined;
+  if (ownPk && !ownPk.includes("YOUR_")) {
+    const { client } = makeWalletClient(ownPk);
+    ownerWalletClient = client;
   }
 }
 
@@ -209,6 +271,15 @@ const WHSK_ABI = parseAbi([
 
 // ─── API Endpoints ──────────────────────────────────────────────────────────
 
+// GET /api/health — Fast synchronous health check for Render / monitoring (no RPC calls)
+app.get("/api/health", (req: Request, res: Response) => {
+  res.json({
+    status: "ok",
+    mode: isReplayMode ? MODE_LABELS.REPLAY : MODE_LABELS.LIVE_TESTNET,
+    timestamp: Date.now(),
+  });
+});
+
 // GET /api/state
 app.get("/api/state", async (req: Request, res: Response) => {
   const mode = isReplayMode ? MODE_LABELS.REPLAY : MODE_LABELS.LIVE_TESTNET;
@@ -310,8 +381,8 @@ app.get("/api/signal", async (req: Request, res: Response) => {
   res.json(latestSignal);
 });
 
-// POST /api/chat
-app.post("/api/chat", async (req: Request, res: Response) => {
+// POST /api/chat (Rate-limited per IP)
+app.post("/api/chat", chatRateLimiter, async (req: Request, res: Response) => {
   const { message } = req.body;
   if (!message || typeof message !== "string") {
     return res.status(400).json({ error: "Missing 'message' string in request body" });
@@ -697,8 +768,8 @@ app.post("/api/chat", async (req: Request, res: Response) => {
   res.json(chatRes);
 });
 
-// POST /api/confirm
-app.post("/api/confirm", async (req: Request, res: Response) => {
+// POST /api/confirm (Rate-limited per IP)
+app.post("/api/confirm", confirmRateLimiter, async (req: Request, res: Response) => {
   const { previewId } = req.body;
   if (!previewId || !pendingPreviews.has(previewId)) {
     return res.status(404).json({ error: "Invalid or expired previewId" });
@@ -841,8 +912,15 @@ app.get("/api/stream", (req: Request, res: Response) => {
   });
 });
 
-// POST /api/demo/mover (Real on-chain pool shift for demo)
+// POST /api/demo/mover (Real on-chain pool shift for demo — requires ADMIN_TOKEN)
 app.post("/api/demo/mover", async (req: Request, res: Response) => {
+  const adminToken = process.env.ADMIN_TOKEN;
+  const providedToken = (req.headers["x-admin-token"] || (req.headers["authorization"] ? req.headers["authorization"].replace(/^Bearer\s+/i, "") : "")) as string | undefined;
+
+  if (adminToken && (!providedToken || providedToken !== adminToken)) {
+    return res.status(401).json({ error: "Unauthorized: Missing or invalid ADMIN_TOKEN header." });
+  }
+
   if (!APP_CONFIG.DEMO_MODE) {
     return res.status(403).json({ error: "Demo mover disabled when DEMO_MODE=false" });
   }
@@ -1078,15 +1156,70 @@ async function tick() {
   }
 }
 
+// Sync on-chain logs to reconstruct portfolio and ledger state on boot (stateless backend)
+async function syncOnchainHistory() {
+  if (!deployments) return;
+  try {
+    const fromBlock = BigInt(deployments.deployBlock || 35216580);
+    const toBlock = await publicClient.getBlockNumber();
+    console.log(`[Fathom] Syncing on-chain history from block #${fromBlock} to #${toBlock}...`);
+
+    const [execLogs, rejLogs] = await Promise.all([
+      publicClient.getContractEvents({
+        address: deployments.executionGuard,
+        abi: EXECUTION_GUARD_ABI,
+        eventName: "TradeExecuted",
+        fromBlock,
+        toBlock,
+      }),
+      publicClient.getContractEvents({
+        address: deployments.executionGuard,
+        abi: EXECUTION_GUARD_ABI,
+        eventName: "TradeRejected",
+        fromBlock,
+        toBlock,
+      }),
+    ]);
+
+    console.log(`[Fathom] Retrieved ${execLogs.length} TradeExecuted and ${rejLogs.length} TradeRejected logs from testnet.`);
+
+    // 1. Process TradeExecuted chronologically into portfolio tracker
+    const sortedExec = [...execLogs].sort((a, b) => {
+      const bDiff = Number(a.blockNumber - b.blockNumber);
+      return bDiff !== 0 ? bDiff : (a.logIndex || 0) - (b.logIndex || 0);
+    });
+
+    for (const log of sortedExec) {
+      const args = log.args as any;
+      if (args && args.tokenIn && args.tokenOut && args.amountIn && args.amountOut) {
+        tracker.processTradeEvent({
+          tokenIn: args.tokenIn,
+          tokenOut: args.tokenOut,
+          amountIn: args.amountIn,
+          amountOut: args.amountOut,
+          blockNumber: log.blockNumber,
+        });
+      }
+    }
+
+    // 2. Rebuild decisions ledger
+    ledger.rebuildFromOnchainLogs(sortedExec, rejLogs, deployments);
+    console.log(`[Fathom] State successfully synced from on-chain logs. Ledger size: ${ledger.getAll().length}`);
+  } catch (err) {
+    console.warn("[Fathom] Failed to sync on-chain history on boot:", err);
+  }
+}
+
 export function startServer(port = APP_CONFIG.PORT) {
   const server = app.listen(port, "0.0.0.0", async () => {
     console.log(`[Fathom] Agent Server listening on http://127.0.0.1:${port}`);
 
-    // Live RPC Health Check
+    // Live RPC Health Check & On-Chain State Reconstruction
     try {
       const block = await publicClient.getBlockNumber();
       console.log(`[Fathom] Connected to HSK Testnet (Chain 133) at Block #${block}`);
       isReplayMode = false;
+      await syncOnchainHistory();
       await refreshDepthCurve();
     } catch (err) {
       console.error("\n" + "=".repeat(64));
