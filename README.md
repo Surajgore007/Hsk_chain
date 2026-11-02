@@ -54,30 +54,33 @@ To adhere strictly to hackathon rules and scientific integrity, all modes in the
 
 | # | Requirement | Implementation in Fathom | Status |
 |---|---|---|---|
-| **R1** | Built on HSK Chain / HSKSwap | Smart vault (`ExecutionGuard.sol`) routes trades to HSKSwap `SwapRouter02` (`0xa6914E66...`) | ✅ Complete |
-| **R2** | Market Monitoring | Poller queries testnet pool (`slot0`, liquidity) and mainnet reference price each tick | ✅ Complete |
-| **R3** | On-Chain Data Analysis | QuoterV2 depth curves, price-impact sweep, spot EMAs, and deviation metrics | ✅ Complete |
-| **R4** | Trading-Signal Identification | Deterministic reference-price reversion and deviation signals | ✅ Complete |
-| **R5** | Order Execution | Autonomous agent -> `ExecutionGuard` vault -> HSKSwap router | ✅ Complete |
-| **R6** | Autonomous Closed Loop | Autonomous execution loop runs continuously without human intervention (AUTO mode) | ✅ Complete |
-| **R7** | Natural-Language Interface | Conversational interface with Groq/Gemini semantic parsing + deterministic rules fallback | ✅ Complete |
+| **R1** | Built on HSK Chain / HSKSwap | Smart vaults (`ExecutionGuard.sol`) route trades to HSKSwap `SwapRouter02` (`0xa6914E66...`) | ✅ Complete |
+| **R2** | Market Monitoring | Continuous poller queries pool state (`slot0`, liquidity) and reference prices for 3 target pairs | ✅ Complete |
+| **R3** | On-Chain Data Analysis | QuoterV2 depth curves, price-impact sweep, EMAs (12/26), crossover, rolling z-score, depth shrinkage | ✅ Complete |
+| **R4** | Trading-Signal Identification | Quantitative spread arbitrage + mean reversion signals exposed to Groq LLM brain | ✅ Complete |
+| **R5** | Order Execution | Autonomous AI Proposer -> Deterministic Sizer -> ExecutionGuard vault -> HSKSwap router | ✅ Complete |
+| **R6** | Autonomous Closed Loop | Always-on autonomous execution loop running every 20-60s without human intervention (AUTO mode) | ✅ Complete |
+| **R7** | Natural-Language Interface | Conversational interface with Groq semantic intent parser + deterministic fallback | ✅ Complete |
 | **R8** | Real-Time Positions & P&L | Real-time NAV, weighted average cost basis, realized & unrealized P&L from contract logs | ✅ Complete |
-| **R9** | Dynamic Strategy Adjustment | Chat intents adjust sizing (`SET_SIZE`), frequency (`SET_FREQUENCY`), and risk (`SET_RISK`) | ✅ Complete |
-| **R10**| Risk Controls & Human Control | Non-custodial vault, cooldown, per-trade cap, daily cap, emergency kill switch | ✅ Complete |
-| **R11**| Verifiable On-Chain Proof | Immutable `TradeExecuted` & `TradeRejected` events with explorer links | ✅ Complete |
+| **R9** | Dynamic Strategy Adjustment | Chat commands adjust sizing (`SET_SIZE`), cadence (`SET_FREQUENCY`), risk (`SET_RISK`), asset (`SET_ASSET`) | ✅ Complete |
+| **R10**| Risk Controls & Stop-Loss | Deterministic Stop-Loss (3%), Take-Profit (5%), Max Drawdown (8%), Daily-Loss limit (5%), Emergency Pause | ✅ Complete |
+| **R11**| Target Assets | Supports 3 pairs: `tWETH/tUSDT`, `tWBTC/tUSDT`, and `WHSK/tUSDT` with individual vaults | ✅ Complete |
+| **R12**| Verifiable On-Chain Proof | Immutable `TradeExecuted` & `TradeRejected` events with verified explorer receipts | ✅ Complete |
 
 ---
 
 ## 🏛️ Verified Addresses & System Interfaces
 
-| Contract / Role | Address | Verification Status | Explorer Link |
+| Asset / Contract | Address | Verification Status | Explorer Link |
 |---|---|---|---|
-| **ExecutionGuard (Vault)** | `0x6b0800d93a0fae5a5d11577be69c74c63e0b5b35` | **Pass - Verified** | [View Code](https://testnet-explorer.hskchain.net/address/0x6b0800d93a0fae5a5d11577be69c74c63e0b5b35#code) |
-| **MockUSDT (6 dec)** | `0x721e7fa9fb2446be07ab4a708254f4adcb70e4cf` | **Pass - Verified** | [View Code](https://testnet-explorer.hskchain.net/address/0x721e7fa9fb2446be07ab4a708254f4adcb70e4cf#code) |
-| **QuoterV2** | `0x5a850f9b26e01c0a10d0b3104e15f2bcd4889070` | **Pass - Verified** | [View Code](https://testnet-explorer.hskchain.net/address/0x5a850f9b26e01c0a10d0b3104e15f2bcd4889070#code) |
-| **WHSK/tUSDT Pool (0.3%)** | `0xe0f494ef52eacebb42cdb11a03a2e9e43fbfdfaf` | Initialized & Funded | [View Pool](https://testnet-explorer.hskchain.net/address/0xe0f494ef52eacebb42cdb11a03a2e9e43fbfdfaf) |
+| **tWETH / tUSDT ExecutionGuard** | `0x0d326a2b8eafd98c3bdf3412ed44ac151fdc3cc8` | **Pass - Verified** | [View Vault](https://testnet-explorer.hskchain.net/address/0x0d326a2b8eafd98c3bdf3412ed44ac151fdc3cc8#code) |
+| **tWBTC / tUSDT ExecutionGuard** | `0xd04859a859cf07fcf4bf6fb6f07eb90402e4f1b0` | **Pass - Verified** | [View Vault](https://testnet-explorer.hskchain.net/address/0xd04859a859cf07fcf4bf6fb6f07eb90402e4f1b0#code) |
+| **WHSK / tUSDT ExecutionGuard** | `0x6b0800d93a0fae5a5d11577be69c74c63e0b5b35` | **Pass - Verified** | [View Vault](https://testnet-explorer.hskchain.net/address/0x6b0800d93a0fae5a5d11577be69c74c63e0b5b35#code) |
+| **QuoterV2** | `0x5a850f9b26e01c0a10d0b3104e15f2bcd4889070` | **Pass - Verified** | [View Quoter](https://testnet-explorer.hskchain.net/address/0x5a850f9b26e01c0a10d0b3104e15f2bcd4889070#code) |
+| **tWETH / tUSDT Pool (0.3%)** | `0x4605627Af0621C90A74B2828E4Ee16d07cAD0d8c` | Initialized ($250k Depth) | [View Pool](https://testnet-explorer.hskchain.net/address/0x4605627Af0621C90A74B2828E4Ee16d07cAD0d8c) |
+| **tWBTC / tUSDT Pool (0.3%)** | `0x313BE070B6851F74C17bb866C2F82A26f41cc9e8` | Initialized ($350k Depth) | [View Pool](https://testnet-explorer.hskchain.net/address/0x313BE070B6851F74C17bb866C2F82A26f41cc9e8) |
+| **WHSK / tUSDT Pool (0.3%)** | `0xe0f494ef52eacebb42cdb11a03a2e9e43fbfdfaf` | Initialized & Funded | [View Pool](https://testnet-explorer.hskchain.net/address/0xe0f494ef52eacebb42cdb11a03a2e9e43fbfdfaf) |
 | **HSKSwap SwapRouter02** | `0xa6914E66690c6794244B5f66a09eAEbf66254237` | Official HSK Deploy | [View Router](https://testnet-explorer.hskchain.net/address/0xa6914E66690c6794244B5f66a09eAEbf66254237) |
-| **NonfungiblePositionManager**| `0x73dec6bfa6751509b08480bd97f54b874e3b20e8` | Official HSK Deploy | [View Manager](https://testnet-explorer.hskchain.net/address/0x73dec6bfa6751509b08480bd97f54b874e3b20e8) |
 | **Mainnet WHSK/USDT Pool** | `0x4ff515761864e7838b0adb8b5b2b8b7a068905dc` | HSK Mainnet (177) | [View on Blockscout](https://hashkey.blockscout.com/address/0x4ff515761864e7838b0adb8b5b2b8b7a068905dc) |
 
 For complete transaction receipts, gas figures, and decoded event logs, see [docs/EVIDENCE.md](docs/EVIDENCE.md).

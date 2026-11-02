@@ -1,0 +1,86 @@
+[
+  {
+    "cycleIndex": 1,
+    "timestamp": 1793631339830,
+    "blockNumber": 35222343,
+    "marketSnapshot": {
+      "spotPrice": 2480.1786,
+      "referencePrice": 2500,
+      "spreadBps": -79,
+      "emaCross": "NEUTRAL",
+      "zScore": 0,
+      "guardBaseBalance": "2.6000 tWETH",
+      "guardQuoteBalance": "8493.04 tUSDT"
+    },
+    "aiProposal": {
+      "action": "HOLD",
+      "sizePct": 0,
+      "rationale": "Spread -79 bps is within normal band, EMA neutral, zScore 0, no dislocation – no trade needed.",
+      "confidence": 0.9,
+      "signalsUsed": [
+        "spreadBps",
+        "emaCross",
+        "zScore"
+      ]
+    },
+    "source": "ai",
+    "latencyMs": 1268,
+    "decisionOutcome": "HOLD_RECORDED"
+  },
+  {
+    "cycleIndex": 2,
+    "timestamp": 1793631346370,
+    "blockNumber": 35222346,
+    "marketSnapshot": {
+      "spotPrice": 2480.1786,
+      "referencePrice": 2500,
+      "spreadBps": -79,
+      "emaCross": "NEUTRAL",
+      "zScore": 0,
+      "guardBaseBalance": "2.6000 tWETH",
+      "guardQuoteBalance": "8493.04 tUSDT"
+    },
+    "aiProposal": {
+      "action": "HOLD",
+      "sizePct": 0,
+      "rationale": "Spread -79 bps is within normal band, EMA neutral, zScore 0, no dislocation – no trade needed.",
+      "confidence": 0.9,
+      "signalsUsed": [
+        "spreadBps",
+        "emaCross",
+        "zScore"
+      ]
+    },
+    "source": "ai",
+    "latencyMs": 893,
+    "decisionOutcome": "HOLD_RECORDED"
+  },
+  {
+    "cycleIndex": 3,
+    "timestamp": 1793631352003,
+    "blockNumber": 35222349,
+    "marketSnapshot": {
+      "spotPrice": 2480.1786,
+      "referencePrice": 2500,
+      "spreadBps": -79,
+      "emaCross": "NEUTRAL",
+      "zScore": 0,
+      "guardBaseBalance": "2.6000 tWETH",
+      "guardQuoteBalance": "8493.04 tUSDT"
+    },
+    "aiProposal": {
+      "action": "HOLD",
+      "sizePct": 0,
+      "rationale": "Spread -79 bps is within normal band, EMA neutral, zScore 0, no dislocation – no trade needed.",
+      "confidence": 0.9,
+      "signalsUsed": [
+        "spreadBps",
+        "emaCross",
+        "zScore"
+      ]
+    },
+    "source": "ai",
+    "latencyMs": 1119,
+    "decisionOutcome": "HOLD_RECORDED"
+  }
+]

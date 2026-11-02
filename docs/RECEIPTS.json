@@ -1,0 +1,47 @@
+{
+  "executeFull": {
+    "decision": "EXECUTE_FULL",
+    "pair": "tWETH/tUSDT",
+    "side": "SELL",
+    "requestedAmountIn": "50000000000000000",
+    "decidedAmountIn": "50000000000000000",
+    "quotedAmountOut": "124562905",
+    "realizedPriceImpactBps": 4,
+    "impactBudgetBps": 60,
+    "txHash": "0xdd5b48cf7077d2946ee0a9998c54588d456c5674ea385cd488ae08d8832317e9",
+    "blockNumber": 35222224,
+    "gasUsed": "226453",
+    "rationale": "AI proposal: Spread at equilibrium, size inside 60 bps budget, full execution confirmed.",
+    "explorerUrl": "https://testnet-explorer.hskchain.net/tx/0xdd5b48cf7077d2946ee0a9998c54588d456c5674ea385cd488ae08d8832317e9"
+  },
+  "executeTrimmed": {
+    "decision": "EXECUTE_TRIMMED",
+    "pair": "tWETH/tUSDT",
+    "side": "SELL",
+    "requestedAmountIn": "700000000000000000",
+    "decidedAmountIn": "350000000000000000",
+    "quotedAmountOut": "868476852",
+    "priceImpactBpsAtRequested": 69,
+    "priceImpactBpsAtDecided": 34,
+    "impactBudgetBps": 60,
+    "txHash": "0xb35dbee0eed3fc944d5eeef372c7718eab64ed0f39f10e779916ef676e7245d8",
+    "blockNumber": 35222296,
+    "gasUsed": "176147",
+    "rationale": "Sizer trimmed order from 0.70 tWETH (69 bps) down to 0.35 tWETH (34 bps) to enforce 60 bps impact budget.",
+    "explorerUrl": "https://testnet-explorer.hskchain.net/tx/0xb35dbee0eed3fc944d5eeef372c7718eab64ed0f39f10e779916ef676e7245d8"
+  },
+  "tradeRejected": {
+    "decision": "NO_TRADE",
+    "pair": "tWETH/tUSDT",
+    "side": "SELL",
+    "reasonCode": "IMPACT_TOO_HIGH (2)",
+    "requestedAmountIn": "1200000000000000000",
+    "priceImpactBpsAtRequested": 185,
+    "impactBudgetBps": 10,
+    "txHash": "0xdbc70b4f15391d4d841ed45abee1365aec8a464488567b64e00e57e0621b885f",
+    "blockNumber": 35222297,
+    "gasUsed": "29180",
+    "rationale": "Order refused: Simulated impact of 185 bps breaches strict 10 bps ceiling and exceeds safe depth cap.",
+    "explorerUrl": "https://testnet-explorer.hskchain.net/tx/0xdbc70b4f15391d4d841ed45abee1365aec8a464488567b64e00e57e0621b885f"
+  }
+}

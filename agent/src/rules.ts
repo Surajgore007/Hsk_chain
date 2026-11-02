@@ -11,12 +11,17 @@ export type ChatIntentType =
   | "SHOW_POSITIONS"
   | "SHOW_PNL"
   | "SHOW_DEPTH"
+  | "SHOW_SIGNALS"
   | "EXPLAIN_LAST"
+  | "WHY_HOLD"
   | "TRADE"
   | "SET_RISK"
   | "SET_SIZE"
   | "SET_FREQUENCY"
   | "SET_ASSET"
+  | "SET_STOP_LOSS"
+  | "SET_TAKE_PROFIT"
+  | "SET_MAX_DRAWDOWN"
   | "PAUSE"
   | "RESUME"
   | "EMERGENCY_STOP"
@@ -42,6 +47,9 @@ export interface ParsedIntent {
   frequencySeconds?: number;
   frequencyMultiplier?: number;
   assetPair?: string;
+  stopLossPct?: number;
+  takeProfitPct?: number;
+  maxDrawdownPct?: number;
   explanation?: string;
   source: "RULES" | "LLM";
 }
@@ -145,17 +153,62 @@ export function parseWithRules(input: string): ParsedIntent {
     return { intent: "SHOW_DEPTH", source: "RULES" };
   }
 
-  // 8. Explain last decision
+  // 7b. Signals
+  if (
+    lower.includes("signal") ||
+    lower.includes("technical") ||
+    lower.includes("indicator") ||
+    lower.includes("z-score") ||
+    lower.includes("ema")
+  ) {
+    return { intent: "SHOW_SIGNALS", source: "RULES" };
+  }
+
+  // 8. Explain last decision / why hold
+  if (lower.includes("why hold") || lower.includes("why did you hold") || lower.includes("why no trade")) {
+    return { intent: "WHY_HOLD", source: "RULES" };
+  }
   if (
     lower.includes("why did you refuse") ||
     lower.includes("explain last") ||
-    lower.includes("why no trade") ||
     lower.includes("why was it trimmed") ||
     lower.includes("why did you reject") ||
     lower.includes("what happened with the last trade") ||
     lower === "explain"
   ) {
     return { intent: "EXPLAIN_LAST", source: "RULES" };
+  }
+
+  // 8b. Stop-Loss, Take-Profit, Max Drawdown
+  const slMatch = lower.match(/(?:set\s+)?stop[\s-]loss\s+(?:to\s+)?(\d+(?:\.\d+)?)\s*%/i);
+  if (slMatch) {
+    return { intent: "SET_STOP_LOSS", stopLossPct: parseFloat(slMatch[1]), source: "RULES" };
+  }
+
+  const tpMatch = lower.match(/(?:set\s+)?take[\s-]profit\s+(?:to\s+)?(\d+(?:\.\d+)?)\s*%/i);
+  if (tpMatch) {
+    return { intent: "SET_TAKE_PROFIT", takeProfitPct: parseFloat(tpMatch[1]), source: "RULES" };
+  }
+
+  const ddMatch = lower.match(/(?:set\s+)?(?:max\s+)?drawdown\s+(?:to\s+)?(\d+(?:\.\d+)?)\s*%/i);
+  if (ddMatch) {
+    return { intent: "SET_MAX_DRAWDOWN", maxDrawdownPct: parseFloat(ddMatch[1]), source: "RULES" };
+  }
+
+  // 8c. Target Asset Switch
+  const assetMatch = lower.match(/(?:switch\s+to\s+(?:pair\s+|asset\s+)?|set\s+asset\s+|trade\s+pair\s+)([a-z0-9/_-]+)/i);
+  if (assetMatch) {
+    const candidate = assetMatch[1].toLowerCase();
+    const isRiskPreset = ["balanced", "conservative", "cautious", "aggressive", "normal"].includes(candidate);
+    if (!isRiskPreset) {
+      let rawPair = candidate.toUpperCase();
+      if (rawPair.includes("ETH")) rawPair = "tWETH/tUSDT";
+      else if (rawPair.includes("BTC")) rawPair = "tWBTC/tUSDT";
+      else if (rawPair.includes("HSK")) rawPair = "WHSK/tUSDT";
+      if (rawPair.includes("/") || ["TWETH/TUSDT", "TWBTC/TUSDT", "WHSK/TUSDT"].includes(rawPair)) {
+        return { intent: "SET_ASSET", assetPair: rawPair, source: "RULES" };
+      }
+    }
   }
 
   // 9. Risk adjustments

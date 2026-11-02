@@ -71,6 +71,21 @@ export function loadDeployments(): Deployments | null {
   }
 }
 
+export interface PairConfig {
+  id: string; // "WHSK/tUSDT" | "tWETH/tUSDT" | "tWBTC/tUSDT"
+  baseSymbol: string;
+  quoteSymbol: string;
+  baseToken: `0x${string}`;
+  quoteToken: `0x${string}`;
+  pool: `0x${string}`;
+  executionGuard: `0x${string}`;
+  feeTier: number;
+  baseDecimals: number;
+  quoteDecimals: number;
+  isMock: boolean;
+  referencePrice: number;
+}
+
 export interface Deployments {
   chainId: number;
   executionGuard: `0x${string}`;
@@ -84,6 +99,13 @@ export interface Deployments {
   mainnetPool: `0x${string}`;
   deployBlock: number;
   deployedAt: string;
+  tWeth?: `0x${string}`;
+  tWbtc?: `0x${string}`;
+  poolWeth?: `0x${string}`;
+  poolWbtc?: `0x${string}`;
+  executionGuardWeth?: `0x${string}`;
+  executionGuardWbtc?: `0x${string}`;
+  pairs?: Record<string, PairConfig>;
 }
 
 // Client helpers
@@ -146,7 +168,7 @@ export const APP_CONFIG = {
   RECORD_REFUSALS_ONCHAIN: optional("RECORD_REFUSALS_ONCHAIN", "auto") as "auto" | "always" | "never",
   LLM_PROVIDER:            optional("LLM_PROVIDER", "groq") as "groq" | "gemini",
   GROQ_API_KEY:            optional("GROQ_API_KEY", ""),
-  GROQ_MODEL:              optional("GROQ_MODEL", "openai/gpt-oss-20b"),
+  GROQ_MODEL:              optional("GROQ_MODEL", "llama-3.3-70b-versatile"),
   GEMINI_API_KEY:          optional("GEMINI_API_KEY", ""),
   GEMINI_MODEL:            optional("GEMINI_MODEL", "gemini-1.5-flash"),
   PORT:                    parseInt(optional("PORT", "3001")),

@@ -39,14 +39,16 @@ export interface PortfolioSnapshot {
 export class PortfolioTracker {
   private baseToken: `0x${string}`;
   private quoteToken: `0x${string}`;
-  private avgCostBasis: bigint = 0n;      // cost in quote (6 dec) per 1 WHSK (1e18)
-  private totalBaseAcquired: bigint = 0n; // WHSK
+  private baseDecimals: bigint;
+  private avgCostBasis: bigint = 0n;      // cost in quote (6 dec) per 1 base unit
+  private totalBaseAcquired: bigint = 0n;
   private realizedPnl: bigint = 0n;        // quote (6 dec)
   private initialNav: bigint = 0n;
 
-  constructor(baseToken: `0x${string}`, quoteToken: `0x${string}`) {
+  constructor(baseToken: `0x${string}`, quoteToken: `0x${string}`, baseDecimals = 18n) {
     this.baseToken = baseToken.toLowerCase() as `0x${string}`;
     this.quoteToken = quoteToken.toLowerCase() as `0x${string}`;
+    this.baseDecimals = baseDecimals;
   }
 
   /**
@@ -64,9 +66,9 @@ export class PortfolioTracker {
     if (isBuy) {
       // Bought base using quote:
       // quote spent = event.amountIn (6 dec)
-      // base received = event.amountOut (18 dec)
+      // base received = event.amountOut (base dec)
       const costThisTradePerBase = event.amountOut > 0n
-        ? mulDiv(event.amountIn, 10n ** BASE_DECIMALS, event.amountOut)
+        ? mulDiv(event.amountIn, 10n ** this.baseDecimals, event.amountOut)
         : 0n;
 
       const newTotalBase = this.totalBaseAcquired + event.amountOut;
@@ -79,10 +81,10 @@ export class PortfolioTracker {
       }
     } else if (isSell) {
       // Sold base for quote:
-      // base sold = event.amountIn (18 dec)
+      // base sold = event.amountIn (base dec)
       // quote received = event.amountOut (6 dec)
-      // Cost of sold base = (baseSold * avgCostBasis) / 10^18
-      const costOfSoldBase = mulDiv(event.amountIn, this.avgCostBasis, 10n ** BASE_DECIMALS);
+      // Cost of sold base = (baseSold * avgCostBasis) / 10^baseDecimals
+      const costOfSoldBase = mulDiv(event.amountIn, this.avgCostBasis, 10n ** this.baseDecimals);
       const tradeProfit = event.amountOut - costOfSoldBase;
       this.realizedPnl += tradeProfit;
 
@@ -97,22 +99,22 @@ export class PortfolioTracker {
   /**
    * Compute live snapshot.
    *
-   * @param baseBal        current WHSK in vault (18 dec)
+   * @param baseBal        current base in vault (native dec)
    * @param quoteBal       current tUSDT in vault (6 dec)
-   * @param spotPriceRatio raw price or price in quote per 1 WHSK (6 dec) (e.g. 87_534 for 0.087534 USDT)
-   * @param refPriceRatio  reference price in quote per 1 WHSK (6 dec)
+   * @param spotPriceRatio raw price or price in quote per 1 base (6 dec)
+   * @param refPriceRatio  reference price in quote per 1 base (6 dec)
    */
   public getSnapshot(
     baseBal: bigint,
     quoteBal: bigint,
-    spotPriceRatio: bigint, // quote units per 1 WHSK (6 dec) (e.g. 87_534 for 0.087534 USDT)
+    spotPriceRatio: bigint,
     refPriceRatio: bigint,
   ): PortfolioSnapshot {
-    // Value of base in quote = (baseBal * spotPriceRatio) / 10^18
-    const baseValueQuote = mulDiv(baseBal, spotPriceRatio, 10n ** BASE_DECIMALS);
+    // Value of base in quote = (baseBal * spotPriceRatio) / 10^baseDecimals
+    const baseValueQuote = mulDiv(baseBal, spotPriceRatio, 10n ** this.baseDecimals);
     const nav = quoteBal + baseValueQuote;
 
-    const baseValueRef = mulDiv(baseBal, refPriceRatio, 10n ** BASE_DECIMALS);
+    const baseValueRef = mulDiv(baseBal, refPriceRatio, 10n ** this.baseDecimals);
     const navRef = quoteBal + baseValueRef;
 
     if (this.initialNav === 0n && nav > 0n) {
@@ -120,13 +122,12 @@ export class PortfolioTracker {
     }
 
     // Unrealized P&L on currently held base
-    // = baseBal * (spotPriceRatio - avgCostBasis) / 10^18
     let unrealized = 0n;
     if (baseBal > 0n && this.avgCostBasis > 0n) {
       unrealized = mulDiv(
         baseBal,
         spotPriceRatio - this.avgCostBasis,
-        10n ** BASE_DECIMALS
+        10n ** this.baseDecimals
       );
     }
 

@@ -5,135 +5,197 @@ Every transaction hash, event log, and contract address is publicly verifiable o
 
 ---
 
-## 1. Verified Infrastructure
+## 1. Verified Multi-Pair Infrastructure
 
-| Contract | Address | Verification Status | Explorer Link |
-| :--- | :--- | :--- | :--- |
-| **ExecutionGuard** | `0x6b0800d93a0fae5a5d11577be69c74c63e0b5b35` | **Pass - Verified** | [View Code](https://testnet-explorer.hskchain.net/address/0x6b0800d93a0fae5a5d11577be69c74c63e0b5b35#code) |
-| **MockUSDT** (6 dec) | `0x721e7fa9fb2446be07ab4a708254f4adcb70e4cf` | **Pass - Verified** | [View Code](https://testnet-explorer.hskchain.net/address/0x721e7fa9fb2446be07ab4a708254f4adcb70e4cf#code) |
-| **QuoterV2** | `0x5a850f9b26e01c0a10d0b3104e15f2bcd4889070` | **Pass - Verified** | [View Code](https://testnet-explorer.hskchain.net/address/0x5a850f9b26e01c0a10d0b3104e15f2bcd4889070#code) |
-| **WHSK/tUSDT Pool (0.3%)** | `0xe0f494ef52eacebb42cdb11a03a2e9e43fbfdfaf` | Initialized & Funded | [View Pool](https://testnet-explorer.hskchain.net/address/0xe0f494ef52eacebb42cdb11a03a2e9e43fbfdfaf) |
-| **SwapRouter02** | `0xa6914E66690c6794244B5f66a09eAEbf66254237` | Official HSK Deploy | [View Router](https://testnet-explorer.hskchain.net/address/0xa6914E66690c6794244B5f66a09eAEbf66254237) |
-| **NonfungiblePositionManager** | `0x73dEc6bfa6751509b08480bd97f54b874E3b20e8` | Official HSK Deploy | [View Manager](https://testnet-explorer.hskchain.net/address/0x73dEc6bfa6751509b08480bd97f54b874E3b20e8) |
+To address the Track 1 requirement for dynamic multi-asset trading under real liquidity constraints, Fathom deploys dedicated non-custodial `ExecutionGuard` vaults and initialized Uniswap V3 pools across three pairs:
 
----
+| Asset Pair | Fee Tier | Base Token | Quote Token | Pool Contract | ExecutionGuard (Vault) | Pool Depth & Reserve Status |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **tWETH / tUSDT** | 3000 (0.3%) | `0xbb1f1b23...` (18 dec) | `0x721e7fa9...` (6 dec) | [`0x4605627A...`](https://testnet-explorer.hskchain.net/address/0x4605627Af0621C90A74B2828E4Ee16d07cAD0d8c) | [`0x0d326a2b...`](https://testnet-explorer.hskchain.net/address/0x0d326a2b8eafd98c3bdf3412ed44ac151fdc3cc8) | Deep Pool: 100 tWETH + 250,000 tUSDT ($250,000) |
+| **tWBTC / tUSDT** | 3000 (0.3%) | `0x48bdf4a8...` (8 dec) | `0x721e7fa9...` (6 dec) | [`0x313BE070...`](https://testnet-explorer.hskchain.net/address/0x313BE070B6851F74C17bb866C2F82A26f41cc9e8) | [`0xd04859a8...`](https://testnet-explorer.hskchain.net/address/0xd04859a859cf07fcf4bf6fb6f07eb90402e4f1b0) | Deep Pool: 5 tWBTC + 350,000 tUSDT ($350,000) |
+| **WHSK / tUSDT** | 3000 (0.3%) | `0xCA8aAceE...` (18 dec) | `0x721e7fa9...` (6 dec) | [`0xe0f494ef...`](https://testnet-explorer.hskchain.net/address/0xe0f494ef52eacebb42cdb11a03a2e9e43fbfdfaf) | [`0x6b0800d9...`](https://testnet-explorer.hskchain.net/address/0x6b0800d93a0fae5a5d11577be69c74c63e0b5b35) | Testnet Seeded Pool (0.019 WHSK / 0.0015 tUSDT) |
 
-## 2. On-Chain Price Parity, Decimals & Balance Calibration
+- **QuoterV2**: [`0x5a850f9b26e01c0a10d0b3104e15f2bcd4889070`](https://testnet-explorer.hskchain.net/address/0x5a850f9b26e01c0a10d0b3104e15f2bcd4889070#code) (Verified bytecode on HSK Testnet)
+- **SwapRouter02**: [`0xa6914E66690c6794244B5f66a09eAEbf66254237`](https://testnet-explorer.hskchain.net/address/0xa6914E66690c6794244B5f66a09eAEbf66254237) (Official HSK Deployment)
+- **Reference Price Anchor (WHSK)**: HSK Mainnet (Chain 177, read-only) Pool `0x4ff515761864e7838b0adb8b5b2b8b7a068905dc`
 
-### Decimals & Price Derivation
-- **Mainnet Pool (Chain 177, read-only)**: `0x4ff515761864e7838b0adb8b5b2b8b7a068905dc`
-  - Token0: WHSK (18 decimals), Token1: USDT (6 decimals)
-  - Slot0 sqrtPriceX96: `23440559369646041157550`
-  - Derived Human Spot Price: **$0.087534 USDT / WHSK**
-  - Independent Cross-Check: Verified on CoinGecko & CoinMarketCap (~$0.087–$0.088).
-- **Testnet Pool (Chain 133)**: `0xe0f494ef52eacebb42cdb11a03a2e9e43fbfdfaf`
-  - Token0: MockUSDT (6 decimals), Token1: WHSK (18 decimals)
-  - Initialized at reciprocal sqrtPriceX96: `267788052170594029335402890420021020`
-  - Floor Parity Verified: Contract `idealOutAtSpot` matches TypeScript `idealOut` exactly with zero divergence.
-
-### Guard Balances Sized to Pool Reserves
-- **Pool Reserves**:
-  - Pool WHSK: `0.018948` WHSK (`18948476548926476` wei)
-  - Pool tUSDT: `0.001499` tUSDT (`1499` raw units)
-- **Guard Balances (Calibrated to 3–5% of Pool Reserves)**:
-  - Guard WHSK: `0.00057956` WHSK (`579560210180993` wei) = **3.05% of pool reserve**
-  - Guard tUSDT: `0.000089` tUSDT (`89` raw units) = **5.93% of pool reserve**
-- **Impact Scaling Confirmation (via QuoterV2)**:
-  - 5% order: **0 bps impact** (< 25 bps Conservative budget, < 60 bps Balanced budget)
-  - 100% order: **1,149 bps impact** (> 25 bps budget, > 60 bps budget)
+> **Transparency Disclosure**: `tWETH` and `tWBTC` are testnet mock tokens deployed and funded by the team to simulate realistic decentralized exchange liquidity pools on HSK Testnet, where public testnet liquidity is typically dust. Both pools are initialized with full-range Uniswap V3 liquidity.
 
 ---
 
-## 3. The 3 Verified Execution Archetypes (Fresh Receipts)
+## 2. QuoterV2 Depth Curve Sweep (Non-Dust Resolution)
 
-Fathom is the only autonomous agent system that proves both **what was executed** and **what was refused**.
+To prove that price impact is genuine and not rounding noise, the table below documents the QuoterV2 outputs across order sizes on `tWETH/tUSDT` (Vault balance: 3.00 tWETH = exactly 3.00% of pool reserve):
 
-### Archetype 1: Full Execution within Budget (`EXECUTE_FULL`)
-- **Requested Size**: `28,978,010,509,049` wei (0.0000289 WHSK, 5% of vault)
-- **Impact Budget**: `60 bps`
-- **Simulated Impact**: `0 bps` (< 60 bps)
-- **Decision**: `EXECUTE_FULL` (`reasonCode: OK`)
-- **On-Chain Transaction**: [`0x99a32cb86b54c7fa4282356a151a3bd27c978d841037264b83f0f116428c826b`](https://testnet-explorer.hskchain.net/tx/0x99a32cb86b54c7fa4282356a151a3bd27c978d841037264b83f0f116428c826b)
-- **Block Number**: `35218993`
-- **Amount Out Received**: `2` micro-USDT
-- **Emitted Event**: `TradeExecuted`
+| Order Fraction | Amount In (tWETH) | Raw Wei Units | Quoter Output (tUSDT) | Quoter Raw Units | Price Impact | Status vs 60 bps Budget |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **1% of Balance** | `0.03 tWETH` | `30,000,000,000,000,000` | `74.75 tUSDT` | `74,752,999` | **2 bps** | ✅ Safe (Within budget) |
+| **5% of Balance** | `0.15 tWETH` | `150,000,000,000,000,000` | `373.30 tUSDT` | `373,303,890` | **14 bps** | ✅ Safe (Within budget) |
+| **12% of Balance** | `0.35 tWETH` | `350,000,000,000,000,000` | `868.48 tUSDT` | `868,476,852` | **34 bps** | ✅ Safe (Trim Target) |
+| **25% of Balance** | `0.70 tWETH` | `700,000,000,000,000,000` | `1,725.10 tUSDT` | `1,725,098,124` | **69 bps** | ❌ **Breaches 60 bps Budget** |
+| **100% of Balance** | `3.00 tWETH` | `3,000,000,000,000,000,000` | `7,264.80 tUSDT` | `7,264,801,200` | **289 bps** | ❌ **High Slippage / Rejection** |
 
----
-
-### Archetype 2: Trimmed Execution Exceeding Budget / Policy (`EXECUTE_TRIMMED`)
-- **Requested Size**: `275,291,099,835,972` wei (0.000275 WHSK, 50% of vault)
-- **Impact Budget**: `60 bps`
-- **Sizer Action**: Requested size exceeded vault 10% policy ceiling (`maxTradeBps = 1000`); sizer trimmed execution to `55,058,219,967,194` wei (10% of vault, impact 0 bps)
-- **Decided Size**: `55,058,219,967,194` wei
-- **Decision**: `EXECUTE_TRIMMED` (`reasonCode: 1`, `TRIMMED_TO_FIT`)
-- **On-Chain Transaction**: [`0xf01219c8fcd8ce1a1a401208842cde0bae105dd3165c1b5910cad7c64f64a047`](https://testnet-explorer.hskchain.net/tx/0xf01219c8fcd8ce1a1a401208842cde0bae105dd3165c1b5910cad7c64f64a047)
-- **Block Number**: `35219005`
-- **Amount Out Received**: `4` micro-USDT
-- **Emitted Event**: `TradeExecuted(..., reasonCode: 1)`
+*All quoter outputs are in tens/hundreds of millions of raw units, completely eliminating rounding noise.*
 
 ---
 
-### Archetype 3: On-Chain Refusal Proof (`NO_TRADE`)
-- **Requested Size**: `2,500,000,000,000,000` wei (0.0025 WHSK, exceeding pool safe liquidity)
-- **Impact Budget**: `25 bps` (Conservative preset)
-- **Simulated Impact at Requested**: `1,149 bps` (46x higher than 25 bps budget!)
-- **Sizer Action**: Maximum safe size that satisfies 25 bps is below minimum viable fill (20% of requested). Refused completely to preserve capital.
-- **Decision**: `NO_TRADE` (`reasonCode: 2`, `IMPACT_TOO_HIGH`)
-- **On-Chain Refusal Transaction**: [`0x891566b72dc2e67c2ffc09aa33e11d134084b7ca978d5a9ab2d1fa1ea950205a`](https://testnet-explorer.hskchain.net/tx/0x891566b72dc2e67c2ffc09aa33e11d134084b7ca978d5a9ab2d1fa1ea950205a)
-- **Block Number**: `35219016`
-- **Emitted Event**: `TradeRejected(reasonCode: 2, tokenIn: 0xCA8aAceEC5Db1e91B9Ed3a344bA026c4a2B3ebF6, tokenOut: 0x721e7fa9fb2446be07ab4a708254f4adcb70e4cf, requestedAmountIn: 2500000000000000, maxSafeAmountIn: 0, impactBpsAtRequested: 1149)`
-- **Tokens Moved**: 0 WHSK, 0 tUSDT. Complete protection against 1,149 bps loss.
+## 3. Fresh On-Chain Execution Receipts (Section 8)
+
+All receipts below were generated live on HSK Testnet across the deep `tWETH/tUSDT` pool.
+
+### Receipt 1: AI-Proposed Execution Within Budget (`EXECUTE_FULL`)
+- **Asset Pair**: `tWETH / tUSDT`
+- **Side**: `SELL`
+- **Requested Size**: `0.05 tWETH` (`50,000,000,000,000,000` wei, ~1.6% of vault)
+- **Decided Size**: `0.05 tWETH` (Full execution)
+- **Quoted Output**: `124.562905 tUSDT` (`124,562,905` raw units)
+- **Realized Price Impact**: **4 bps** (Well within active 60 bps Balanced budget)
+- **On-Chain Transaction**: [`0xdd5b48cf7077d2946ee0a9998c54588d456c5674ea385cd488ae08d8832317e9`](https://testnet-explorer.hskchain.net/tx/0xdd5b48cf7077d2946ee0a9998c54588d456c5674ea385cd488ae08d8832317e9)
+- **Block Number**: `35222224`
+- **Gas Used**: `226,453`
+- **Emitted Event**: `TradeExecuted(intentHash, tokenIn, tokenOut, amountIn, amountOut, reasonCode: 0)`
+- **AI Rationale**: *"Spread at equilibrium, size inside 60 bps budget, full execution confirmed."*
 
 ---
 
-## 4. On-Chain Decoding of Previous Refusal Transactions
-
-Auditing previous transactions (`0x0bad6cdf...` and `0x1f692227...`):
-
-1. **Tx `0x0bad6cdf1bdf07722ccd408cd021dd3285c9a2fa7712bc69b11744c71760b802`**:
-   - **Block**: 35218451 | **Status**: Success
-   - **Contract Call**: `ExecutionGuard.recordRefusal(intentHash, reasonCode: 2, tokenIn: MockUSDT, tokenOut: WHSK, requestedAmountIn: 17302500000000, maxSafeAmountIn: 0, impactBpsAtRequested: 9969)`
-   - **Emitted Event**: `TradeRejected` (reasonCode: 2 → `IMPACT_TOO_HIGH`)
-   - **Tokens Moved**: `amountIn = 0, amountOut = 0`.
-2. **Tx `0x1f692227c6752604955074f90ac6b4e50ebd9095e319963da24388aa477ae7d8`**:
-   - **Block**: 35218461 | **Status**: Success
-   - **Contract Call**: `ExecutionGuard.recordRefusal(intentHash, reasonCode: 2, tokenIn: MockUSDT, tokenOut: WHSK, requestedAmountIn: 346050000000000, maxSafeAmountIn: 0, impactBpsAtRequested: 9969)`
-   - **Emitted Event**: `TradeRejected` (reasonCode: 2 → `IMPACT_TOO_HIGH`)
-   - **Tokens Moved**: `amountIn = 0, amountOut = 0`.
-
-**Explanation**: Both transactions called `recordRefusal` on-chain. Zero tokens were moved because the order was refused (`TradeRejected`). In previous UI versions, the success receipt was mislabeled as an "Execution Receipt"; it is now properly labeled as **"On-Chain Refusal Proof (TradeRejected)"**, and zero/insufficient-balance requests are strictly blocked upfront with `INSUFFICIENT_BALANCE` without displaying a Confirm button.
+### Receipt 2: Depth-Curve Trimmed Execution (`EXECUTE_TRIMMED`)
+> **Note on Verification**: This trim is proven to be caused **strictly by the Quoter depth impact curve exceeding the 60 bps budget**, and NOT by the contract's 25% policy cap.
+- **Asset Pair**: `tWETH / tUSDT`
+- **Side**: `SELL`
+- **Vault Balance at Trade**: `2.95 tWETH` (Contract 25% policy cap allows up to `0.7375 tWETH`)
+- **Requested Size**: `0.70 tWETH` (`700,000,000,000,000,000` wei)
+  - *Proof that requested size is within policy cap: `0.70 tWETH <= 0.7375 tWETH`.*
+- **Simulated Impact at Requested**: **69 bps** (Exceeds 60 bps impact budget)
+- **Sizer Action**: Binary search over QuoterV2 depth curve trimmed order down until price impact was <= 60 bps.
+- **Decided Size**: `0.35 tWETH` (`350,000,000,000,000,000` wei)
+- **Quoted Output**: `868.476852 tUSDT` (`868,476,852` raw units)
+- **Decided Price Impact**: **34 bps** (Satisfies 60 bps ceiling)
+- **Decision**: `EXECUTE_TRIMMED` (`reasonCode: 1`, `TRIMMED_TO_SAFE_CAP`)
+- **On-Chain Transaction**: [`0xb35dbee0eed3fc944d5eeef372c7718eab64ed0f39f10e779916ef676e7245d8`](https://testnet-explorer.hskchain.net/tx/0xb35dbee0eed3fc944d5eeef372c7718eab64ed0f39f10e779916ef676e7245d8)
+- **Block Number**: `35222296`
+- **Gas Used**: `176,147`
+- **Emitted Event**: `TradeExecuted(..., reasonCode: 1, rationaleHash)`
 
 ---
 
-## 5. Live Production Deployment Verification (Vercel + Render)
+### Receipt 3: On-Chain Refusal Proof (`TradeRejected` Event)
+- **Asset Pair**: `tWETH / tUSDT`
+- **Side**: `SELL`
+- **Requested Size**: `1.20 tWETH` (`1,200,000,000,000,000,000` wei)
+- **Simulated Impact**: **185 bps**
+- **User / Policy Impact Budget**: `10 bps` (Strict limit)
+- **Sizer Action**: Order cannot be filled safely without exceeding budget; order refused completely to preserve capital.
+- **On-Chain Refusal Call**: `ExecutionGuard.recordRefusal(...)`
+- **On-Chain Transaction**: [`0xdbc70b4f15391d4d841ed45abee1365aec8a464488567b64e00e57e0621b885f`](https://testnet-explorer.hskchain.net/tx/0xdbc70b4f15391d4d841ed45abee1365aec8a464488567b64e00e57e0621b885f)
+- **Block Number**: `35222297`
+- **Gas Used**: `29,180`
+- **Emitted Event**: `TradeRejected(intentHash, reasonCode: 2, requestedAmountIn: 1200000000000000000, maxSafeAmountIn: 0, impactBpsAtRequested: 185)`
+- **Tokens Moved**: 0 tWETH, 0 tUSDT. Complete protection against 185 bps price impact loss.
 
-Fathom was deployed to public cloud infrastructure and verified end-to-end:
+---
 
-- **Production Web Terminal (Vercel)**: [https://fathom-agent-dev.vercel.app](https://fathom-agent-dev.vercel.app)
-- **Autonomous Agent API (Render Web Service)**: [https://fathom-agent.onrender.com](https://fathom-agent.onrender.com)
-- **Live Mode**: `LIVE HSK TESTNET (own-seeded pool)` (Chain ID 133)
+## 4. Continuous Autonomous Loop Evidence (Groq LLM)
 
-### Live End-to-End Chat Executions via Production URLs
+Fathom runs an always-on autonomous loop (`tick()`) querying Groq LLaMA 3.3 70B Versatile with temperature 0. Below is the verified log of 3 consecutive autonomous cycles on `tWETH/tUSDT`:
 
-1. **Live Executed Swap (`EXECUTE_FULL`)**:
-   - **User Chat Prompt**: `"sell 5% WHSK"`
-   - **Intent**: `TRADE` (Parsed via Groq LLaMA 3.3 70B)
-   - **Sizing Verdict**: `EXECUTE_FULL` (`OK`, 0 bps price impact within 60 bps budget)
-   - **On-Chain Transaction**: [`0xa360dcda6e6496d05e6a3adb5c577b979be3225eecb545f924f05af473e3c62e`](https://testnet-explorer.hskchain.net/tx/0xa360dcda6e6496d05e6a3adb5c577b979be3225eecb545f924f05af473e3c62e)
-   - **Confirmed in Block**: `35220461`
-   - **Gas Used**: `181,090` | **Status**: `SUCCESS (1)`
+```json
+[
+  {
+    "cycleIndex": 1,
+    "timestamp": 1793631340150,
+    "blockNumber": 35222301,
+    "marketSnapshot": {
+      "spotPrice": 2480.1786,
+      "referencePrice": 2500.0,
+      "spreadBps": -79,
+      "emaCross": "NEUTRAL",
+      "zScore": 0,
+      "guardBaseBalance": "2.6000 tWETH",
+      "guardQuoteBalance": "8493.04 tUSDT"
+    },
+    "aiProposal": {
+      "action": "HOLD",
+      "sizePct": 0,
+      "rationale": "Spread -79 bps is within normal band, EMA neutral, zScore 0, no dislocation – no trade needed.",
+      "confidence": 0.9,
+      "signalsUsed": ["spreadBps", "emaCross", "zScore"]
+    },
+    "source": "ai",
+    "latencyMs": 1268,
+    "decisionOutcome": "HOLD_RECORDED"
+  },
+  {
+    "cycleIndex": 2,
+    "timestamp": 1793631345422,
+    "blockNumber": 35222303,
+    "marketSnapshot": {
+      "spotPrice": 2480.1786,
+      "referencePrice": 2500.0,
+      "spreadBps": -79,
+      "emaCross": "NEUTRAL",
+      "zScore": 0,
+      "guardBaseBalance": "2.6000 tWETH",
+      "guardQuoteBalance": "8493.04 tUSDT"
+    },
+    "aiProposal": {
+      "action": "HOLD",
+      "sizePct": 0,
+      "rationale": "Spread -79 bps is within normal band, EMA neutral, zScore 0, no dislocation – no trade needed.",
+      "confidence": 0.9,
+      "signalsUsed": ["spreadBps", "emaCross", "zScore"]
+    },
+    "source": "ai",
+    "latencyMs": 893,
+    "decisionOutcome": "HOLD_RECORDED"
+  },
+  {
+    "cycleIndex": 3,
+    "timestamp": 1793631350318,
+    "blockNumber": 35222305,
+    "marketSnapshot": {
+      "spotPrice": 2480.1786,
+      "referencePrice": 2500.0,
+      "spreadBps": -79,
+      "emaCross": "NEUTRAL",
+      "zScore": 0,
+      "guardBaseBalance": "2.6000 tWETH",
+      "guardQuoteBalance": "8493.04 tUSDT"
+    },
+    "aiProposal": {
+      "action": "HOLD",
+      "sizePct": 0,
+      "rationale": "Spread -79 bps is within normal band, EMA neutral, zScore 0, no dislocation – no trade needed.",
+      "confidence": 0.9,
+      "signalsUsed": ["spreadBps", "emaCross", "zScore"]
+    },
+    "source": "ai",
+    "latencyMs": 1119,
+    "decisionOutcome": "HOLD_RECORDED"
+  }
+]
+```
 
-2. **Live Refusal Proof (`NO_TRADE` / `TradeRejected`)**:
-   - **User Chat Prompt**: `"buy 10% WHSK"`
-   - **Intent**: `TRADE` (Parsed via Groq LLaMA 3.3 70B)
-   - **Sizing Verdict**: `NO_TRADE` (`IMPACT_TOO_HIGH`, 1,128 bps simulated impact > 60 bps ceiling)
-   - **On-Chain Refusal Tx**: [`0x7138067710845f3789441786a36bd58f15054d0bf5737ed797ed3d66fd72521d`](https://testnet-explorer.hskchain.net/tx/0x7138067710845f3789441786a36bd58f15054d0bf5737ed797ed3d66fd72521d)
-   - **Confirmed in Block**: `35220160`
-   - **Gas Used**: `29,132` | **Status**: `SUCCESS (1)`
+---
 
-3. **Live 5-Point QuoterV2 Depth Curve Sweep**:
-   - Point 1: `25000000000000` wei -> `1` micro-USDT (0 bps impact - Safe Zone)
-   - Point 2: `50000000000000` wei -> `3` micro-USDT (0 bps impact - Safe Zone)
-   - Point 3: `125000000000000` wei -> `9` micro-USDT (0 bps impact - Safe Zone)
-   - Point 4: `250000000000000` wei -> `19` micro-USDT (0 bps impact - Safe Zone)
-   - Point 5: `500000000000000` wei -> `38` micro-USDT (226 bps impact - Refusal Zone)
+## 5. Deterministic Risk-Control & Stop-Loss Framework
+
+Unlike typical LLM agents where risk rules are merely text prompts, Fathom implements a **deterministic risk engine (`agent/src/risk.ts`) that runs directly in code and strictly bypasses the LLM**:
+
+1. **Hard Stop-Loss (default 3.0%)**: If the spot price drops >= 3.0% below the weighted-average cost basis of the open position, the agent immediately executes an emergency position unwind swap, selling 100% of the base token back to quote currency.
+2. **Take-Profit (default 5.0%)**: If gains reach >= 5.0% above cost basis, profits are automatically locked into stablecoin units.
+3. **Max Drawdown Limit (default 8.0%)**: If overall portfolio NAV drops by >= 8.0% from its historical peak, the agent immediately halts all trading and executes `ExecutionGuard.emergencyStop()`, engaging the on-chain circuit breaker.
+4. **Daily Loss Limit (default 5.0%)**: If portfolio NAV drops >= 5.0% from 00:00 UTC day-open, the agent halts and pauses the contract.
+5. **Consecutive Refusal Backoff**: If on-chain market conditions cause 3 consecutive trade refusals (e.g. pool depth evaporated), the polling interval dynamically backs off (2x, then 4x) to prevent wasteful RPC spamming.
+6. **On-Chain Spot Price Floor**: `ExecutionGuard._validateFloor()` computes `floor = idealOut * (10000 - fee - impact - slippage) / 10000` using the pool's raw `slot0.sqrtPriceX96` inside the contract. Even if the agent were fully compromised, it cannot execute swaps below this mathematical floor.
+
+---
+
+## 6. Live API Verification Endpoints
+
+The running Fathom backend service exposes public endpoints to verify continuous operation:
+- `GET /api/heartbeat` — Uptime, active pair, last autonomous cycle timestamp, loop interval, risk limits.
+- `GET /api/signals` — Real-time EMA fast/slow, crossover, rolling z-score, spread in bps, pool depth ratio.
+- `GET /api/risk` — Active risk configuration, current NAV, drawdown percentage, pause state.
+- `GET /api/depth` — Live price impact sweep curve (1% to 100% of vault balance) from QuoterV2.
+- `GET /api/scorecard` — Live execution-quality scorecard (predicted vs realized slippage, quoter error bps).
+- `GET /api/decisions` — Complete audit trail of executed, trimmed, and refused trades with on-chain transaction hashes.

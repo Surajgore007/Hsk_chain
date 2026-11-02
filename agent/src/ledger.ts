@@ -14,7 +14,16 @@ import { resolve, dirname } from "path";
 import type { DepthPoint } from "./depth.js";
 
 export type DecisionType = "EXECUTE_FULL" | "EXECUTE_TRIMMED" | "NO_TRADE";
-export type DecisionSource = "SIGNAL" | "CHAT";
+export type DecisionSource =
+  | "SIGNAL"
+  | "CHAT"
+  | "AI"
+  | "RULES_FALLBACK"
+  | "STOP_LOSS"
+  | "TAKE_PROFIT"
+  | "DRAWDOWN"
+  | "DAILY_LOSS"
+  | "SYSTEM";
 
 export interface SerializedDepthPoint {
   amountIn: string;
@@ -28,10 +37,10 @@ export interface DecisionRecord {
   ts: number;
   source: DecisionSource;
   pair: string;
-  side: "BUY" | "SELL";
+  side: "BUY" | "SELL" | "HOLD";
   requestedAmountIn: string;
   decidedAmountIn: string;
-  decision: DecisionType;
+  decision: DecisionType | "HOLD";
   reasonCode: string;
   humanReason: string;
   spot: string;
@@ -51,6 +60,14 @@ export interface DecisionRecord {
   estimateErrorBps?: number;
   lossAvoidedQuote?: string; // in quote units
   modeLabel: string;
+  proposedByAI?: {
+    action: string;
+    sizePct: number;
+    rationale: string;
+    confidence: number;
+    signalsUsed?: string[];
+  };
+  aiRationale?: string;
 }
 
 export interface ScorecardMetrics {

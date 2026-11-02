@@ -48,13 +48,30 @@ const AssetIntentSchema = z.object({
   assetPair: z.string(),
 });
 
+const StopLossIntentSchema = z.object({
+  intent: z.literal("SET_STOP_LOSS"),
+  stopLossPct: z.number().min(0.5).max(20),
+});
+
+const TakeProfitIntentSchema = z.object({
+  intent: z.literal("SET_TAKE_PROFIT"),
+  takeProfitPct: z.number().min(1).max(50),
+});
+
+const MaxDrawdownIntentSchema = z.object({
+  intent: z.literal("SET_MAX_DRAWDOWN"),
+  maxDrawdownPct: z.number().min(2).max(25),
+});
+
 const SimpleIntentSchema = z.object({
   intent: z.enum([
     "STATUS",
     "SHOW_POSITIONS",
     "SHOW_PNL",
     "SHOW_DEPTH",
+    "SHOW_SIGNALS",
     "EXPLAIN_LAST",
+    "WHY_HOLD",
     "PAUSE",
     "RESUME",
     "EMERGENCY_STOP",
@@ -71,6 +88,9 @@ export const AnyIntentSchema = z.discriminatedUnion("intent", [
   SizeIntentSchema,
   FrequencyIntentSchema,
   AssetIntentSchema,
+  StopLossIntentSchema,
+  TakeProfitIntentSchema,
+  MaxDrawdownIntentSchema,
   SimpleIntentSchema,
 ]);
 
@@ -200,18 +220,23 @@ OUTPUT JSON ONLY matching one of these intent types:
 2. SHOW_POSITIONS: {"intent": "SHOW_POSITIONS"}
 3. SHOW_PNL: {"intent": "SHOW_PNL"}
 4. SHOW_DEPTH: {"intent": "SHOW_DEPTH"}
-5. EXPLAIN_LAST: {"intent": "EXPLAIN_LAST"}
-6. TRADE: {"intent": "TRADE", "trade": {"side": "BUY"|"SELL", "amount": {"value": number, "unit": "BASE"|"QUOTE"|"PERCENT_BALANCE"}, "maxImpactBps": number optional}}
-7. SET_RISK: {"intent": "SET_RISK", "riskPreset": "conservative"|"balanced"|"aggressive" OR "impactBudgetBps": number}
-8. SET_SIZE: {"intent": "SET_SIZE", "percentOfBalance": number (1-50)}
-9. SET_FREQUENCY: {"intent": "SET_FREQUENCY", "frequencySeconds": number (10-600)}
-10. SET_ASSET: {"intent": "SET_ASSET", "assetPair": "WHSK/tUSDT"}
-11. PAUSE: {"intent": "PAUSE"}
-12. RESUME: {"intent": "RESUME"}
-13. EMERGENCY_STOP: {"intent": "EMERGENCY_STOP"}
-14. AUTO_ON: {"intent": "AUTO_ON"}
-15. AUTO_OFF: {"intent": "AUTO_OFF"}
-16. UNKNOWN: {"intent": "UNKNOWN", "explanation": "string question"}
+5. SHOW_SIGNALS: {"intent": "SHOW_SIGNALS"}
+6. EXPLAIN_LAST: {"intent": "EXPLAIN_LAST"}
+7. WHY_HOLD: {"intent": "WHY_HOLD"}
+8. TRADE: {"intent": "TRADE", "trade": {"side": "BUY"|"SELL", "amount": {"value": number, "unit": "BASE"|"QUOTE"|"PERCENT_BALANCE"}, "maxImpactBps": number optional}}
+9. SET_RISK: {"intent": "SET_RISK", "riskPreset": "conservative"|"balanced"|"aggressive" OR "impactBudgetBps": number}
+10. SET_SIZE: {"intent": "SET_SIZE", "percentOfBalance": number (1-50)}
+11. SET_FREQUENCY: {"intent": "SET_FREQUENCY", "frequencySeconds": number (10-600)}
+12. SET_ASSET: {"intent": "SET_ASSET", "assetPair": "WHSK/tUSDT"|"tWETH/tUSDT"|"tWBTC/tUSDT"}
+13. SET_STOP_LOSS: {"intent": "SET_STOP_LOSS", "stopLossPct": number}
+14. SET_TAKE_PROFIT: {"intent": "SET_TAKE_PROFIT", "takeProfitPct": number}
+15. SET_MAX_DRAWDOWN: {"intent": "SET_MAX_DRAWDOWN", "maxDrawdownPct": number}
+16. PAUSE: {"intent": "PAUSE"}
+17. RESUME: {"intent": "RESUME"}
+18. EMERGENCY_STOP: {"intent": "EMERGENCY_STOP"}
+19. AUTO_ON: {"intent": "AUTO_ON"}
+20. AUTO_OFF: {"intent": "AUTO_OFF"}
+21. UNKNOWN: {"intent": "UNKNOWN", "explanation": "string question"}
 
 Output raw JSON only without markdown or commentary.`;
 
@@ -262,12 +287,19 @@ export interface ChatContext {
   statusSummary: string;
   portfolioSummary: string;
   lastDecisionSummary?: string;
+  lastHoldSummary?: string;
+  signalsSummary?: string;
   currentRisk: RiskPreset;
   poolAddress?: string;
   spotPriceDisplay?: number;
   refPriceDisplay?: number;
   baseBal?: string;
   quoteBal?: string;
+  activePair?: string;
+  supportedPairs?: string[];
+  stopLossPct?: number;
+  takeProfitPct?: number;
+  maxDrawdownPct?: number;
 }
 
 export async function processChatMessage(

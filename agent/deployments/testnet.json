@@ -28,5 +28,55 @@
     "fundGuardWhsk": "0x007850d21c5f81ad554a23c850e97a76b6d0b38563e97f93cb4bcd65e1eea32d",
     "fundGuardUsdt": "0xa03d0cb5d3543039f9c11dfd3a0415173f7c61ef84c294e1ff5af4cd9ecd2943",
     "testSwap": "0x5cc0f2c35669e27667f1cb495160a2aadca3d1e35f742f86284da89e7d38733a"
+  },
+  "tWeth": "0xbb1f1b239d6353e8863c761d186910f0f3df674e",
+  "tWbtc": "0x48bdf4a88e1ef7bbd482de4bb77eead612a53ece",
+  "poolWeth": "0x4605627Af0621C90A74B2828E4Ee16d07cAD0d8c",
+  "poolWbtc": "0x313BE070B6851F74C17bb866C2F82A26f41cc9e8",
+  "executionGuardWeth": "0x0d326a2b8eafd98c3bdf3412ed44ac151fdc3cc8",
+  "executionGuardWbtc": "0xd04859a859cf07fcf4bf6fb6f07eb90402e4f1b0",
+  "pairs": {
+    "WHSK/tUSDT": {
+      "id": "WHSK/tUSDT",
+      "baseSymbol": "WHSK",
+      "quoteSymbol": "tUSDT",
+      "baseToken": "0xCA8aAceEC5Db1e91B9Ed3a344bA026c4a2B3ebF6",
+      "quoteToken": "0x721e7fa9fb2446be07ab4a708254f4adcb70e4cf",
+      "pool": "0xe0f494ef52eacebb42cdb11a03a2e9e43fbfdfaf",
+      "executionGuard": "0x6b0800d93a0fae5a5d11577be69c74c63e0b5b35",
+      "feeTier": 3000,
+      "baseDecimals": 18,
+      "quoteDecimals": 6,
+      "isMock": false,
+      "referencePrice": 0.087534
+    },
+    "tWETH/tUSDT": {
+      "id": "tWETH/tUSDT",
+      "baseSymbol": "tWETH",
+      "quoteSymbol": "tUSDT",
+      "baseToken": "0xbb1f1b239d6353e8863c761d186910f0f3df674e",
+      "quoteToken": "0x721e7fa9fb2446be07ab4a708254f4adcb70e4cf",
+      "pool": "0x4605627Af0621C90A74B2828E4Ee16d07cAD0d8c",
+      "executionGuard": "0x0d326a2b8eafd98c3bdf3412ed44ac151fdc3cc8",
+      "feeTier": 3000,
+      "baseDecimals": 18,
+      "quoteDecimals": 6,
+      "isMock": true,
+      "referencePrice": 2500
+    },
+    "tWBTC/tUSDT": {
+      "id": "tWBTC/tUSDT",
+      "baseSymbol": "tWBTC",
+      "quoteSymbol": "tUSDT",
+      "baseToken": "0x48bdf4a88e1ef7bbd482de4bb77eead612a53ece",
+      "quoteToken": "0x721e7fa9fb2446be07ab4a708254f4adcb70e4cf",
+      "pool": "0x313BE070B6851F74C17bb866C2F82A26f41cc9e8",
+      "executionGuard": "0xd04859a859cf07fcf4bf6fb6f07eb90402e4f1b0",
+      "feeTier": 3000,
+      "baseDecimals": 8,
+      "quoteDecimals": 6,
+      "isMock": true,
+      "referencePrice": 70000
+    }
   }
 }

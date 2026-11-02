@@ -209,15 +209,13 @@ export function deviationBps(spot: bigint, ref: bigint): bigint {
 export function sqrtPriceToDisplayPrice(
   sqrtPriceX96: bigint,
   token0IsBase: boolean,
+  baseDecimals = 18,
+  quoteDecimals = 6,
 ): number {
   const raw = Number(sqrtPriceX96) / Number(Q96);
   const priceRaw = raw * raw;
-  // Adjust for 18 vs 6 decimals:
-  // If token0 is base (WHSK 18) and token1 is quote (USDT 6):
-  //   priceRaw = raw USDT / raw WHSK -> human USDT / WHSK = priceRaw * 1e12
-  // If token0 is quote (USDT 6) and token1 is base (WHSK 18):
-  //   priceRaw = raw WHSK / raw USDT -> human USDT / WHSK = 1e12 / priceRaw
-  const price = token0IsBase ? priceRaw * 1e12 : 1e12 / priceRaw;
+  const decMultiplier = Math.pow(10, baseDecimals - quoteDecimals);
+  const price = token0IsBase ? priceRaw * decMultiplier : decMultiplier / priceRaw;
   return price;
 }
 
