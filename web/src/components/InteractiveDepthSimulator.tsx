@@ -34,7 +34,7 @@ export const InteractiveDepthSimulator: React.FC<{ spotPrice?: number }> = ({ sp
   } else if (size <= trimLimit) {
     decision = "EXECUTE_TRIMMED";
     headline = "Trimmed to Max Safe Depth";
-    description = `Requested ${size} WHSK causes ${impactBps} bps impact. DepthGuard automatically trims execution to ${safeCap} WHSK to preserve your ${budgetBps} bps budget.`;
+    description = `Requested ${size} WHSK causes ${impactBps} bps impact. Fathom automatically trims execution to ${safeCap} WHSK to preserve your ${budgetBps} bps budget.`;
     executedSize = safeCap;
     capitalSaved = Number(((size - safeCap) * spotPrice * ((impactBps - budgetBps) / 10000)).toFixed(2));
   } else {
@@ -117,7 +117,7 @@ export const InteractiveDepthSimulator: React.FC<{ spotPrice?: number }> = ({ sp
             Pool Absorptive Capacity Simulator
           </h2>
           <p className="font-body text-sm text-on-surface-variant mt-1 max-w-xl">
-            Drag the proposed trade size to observe how DepthGuard sweeps the liquidity curve, enforces impact budgets, and prevents slippage losses.
+            Drag the proposed trade size to observe how Fathom sweeps the liquidity curve, enforces impact budgets, and prevents slippage losses.
           </p>
         </div>
 

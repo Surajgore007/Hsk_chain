@@ -1,5 +1,5 @@
 /**
- * verify-live.ts — End-to-end verification script for DepthGuard on HSK Testnet
+ * verify-live.ts — End-to-end verification script for Fathom on HSK Testnet
  *
  * Verifies:
  * 1. RPC connection to HashKey Testnet (Chain 133).
@@ -25,7 +25,7 @@ import { sqrtPriceToDisplayPrice, idealOut } from "../agent/src/price.js";
 
 async function main() {
   console.log("================================================================");
-  console.log("  DEPTHGUARD — LIVE SYSTEM VERIFICATION (GATE CHECK)");
+  console.log("  FATHOM — LIVE SYSTEM VERIFICATION (GATE CHECK)");
   console.log("================================================================\n");
 
   const dep = loadDeployments();

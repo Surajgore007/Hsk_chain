@@ -111,7 +111,7 @@ export const OnboardingWizard: React.FC<Props> = ({ onComplete, currentProfile }
       maxTradePct: risk === "conservative" ? 5 : risk === "balanced" ? 10 : 20,
     };
     try {
-      localStorage.setItem("depthguard_profile", JSON.stringify(profile));
+      localStorage.setItem("fathom_profile", JSON.stringify(profile));
     } catch {}
     onComplete(profile);
   };
@@ -160,7 +160,7 @@ export const OnboardingWizard: React.FC<Props> = ({ onComplete, currentProfile }
           <div className="w-7 h-7 rounded-lg bg-primary text-white flex items-center justify-center">
             <Shield className="w-3.5 h-3.5" />
           </div>
-          <span className="font-headline font-bold text-sm text-on-surface">DepthGuard</span>
+          <span className="font-headline font-bold text-sm text-on-surface">Fathom</span>
         </div>
 
         {/* Step dots */}
@@ -418,7 +418,7 @@ export const OnboardingWizard: React.FC<Props> = ({ onComplete, currentProfile }
             disabled={!canAdvance()}
             className="flex items-center gap-2 px-7 py-3 rounded-xl bg-primary text-white text-sm font-semibold shadow-card hover:shadow-dropdown transition-all disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            Launch DepthGuard
+            Launch Fathom
             <ArrowRight className="w-4 h-4" />
           </button>
         )}

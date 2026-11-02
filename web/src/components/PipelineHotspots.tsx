@@ -77,7 +77,7 @@ export const PipelineHotspots: React.FC = () => {
             <span>Autonomous Loop Architecture</span>
           </div>
           <h3 className="font-headline text-2xl sm:text-3xl text-on-surface font-semibold tracking-tight">
-            How an Order Travels Through DepthGuard
+            How an Order Travels Through Fathom
           </h3>
           <p className="font-body text-sm text-on-surface-variant mt-1">
             Click any stage node below to inspect its deterministic safety guarantees.

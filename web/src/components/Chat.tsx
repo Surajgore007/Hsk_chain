@@ -85,7 +85,7 @@ export const Chat: React.FC<Props> = ({
             <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
           </span>
           <span className="font-headline font-semibold text-on-surface">
-            {userProfile?.name ? `${userProfile.name}'s Agent` : "DepthGuard Console"}
+            {userProfile?.name ? `${userProfile.name}'s Agent` : "Fathom Console"}
           </span>
           <span className="text-on-surface-variant/40">•</span>
           {/* Quick Risk Pill Switcher */}
@@ -144,7 +144,7 @@ export const Chat: React.FC<Props> = ({
             >
               {/* Sender / Badge */}
               <div className="text-[10px] font-mono uppercase text-on-surface-variant mb-1 px-1 flex items-center gap-1.5">
-                <span>{isUser ? userProfile?.name || "Human Operator" : "DepthGuard AI"}</span>
+                <span>{isUser ? userProfile?.name || "Human Operator" : "Fathom AI"}</span>
                 {m.parserBadge && (
                   <span className="px-1.5 py-0.5 rounded bg-secondary-container text-on-secondary-container font-mono text-[9px] lowercase">
                     via {m.parserBadge}
@@ -293,7 +293,7 @@ export const Chat: React.FC<Props> = ({
         {isLoading && (
           <div className="flex flex-col items-start space-y-1.5">
             <div className="text-[10px] font-mono uppercase text-on-surface-variant px-1 flex items-center gap-1.5">
-              <span>DepthGuard AI</span>
+              <span>Fathom AI</span>
               <span className="px-1.5 py-0.2 rounded bg-secondary-container text-on-secondary-container font-mono text-[9px] animate-pulse">
                 reasoning
               </span>

@@ -1,4 +1,4 @@
-# DEPTHGUARD — ON-CHAIN VERIFICATION EVIDENCE
+# FATHOM — ON-CHAIN VERIFICATION EVIDENCE
 
 This document contains **100% verified, live on-chain receipts** executed on **HashKey Chain Testnet (Chain ID 133)**.
 Every transaction hash, event log, and contract address is publicly verifiable on the [HashKey Testnet Blockscout Explorer](https://testnet-explorer.hskchain.net).
@@ -34,7 +34,7 @@ Every transaction hash, event log, and contract address is publicly verifiable o
 
 ## 3. The 3 Verified Execution Archetypes
 
-DepthGuard is the only autonomous agent system that proves both **what was executed** and **what was refused**.
+Fathom is the only autonomous agent system that proves both **what was executed** and **what was refused**.
 
 ### Archetype 1: Full Execution within Budget (`EXECUTE_FULL`)
 - **Requested Size**: `25,000,000,000,000` wei (0.000025 WHSK)

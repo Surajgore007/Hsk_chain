@@ -40,7 +40,7 @@ export const HeroPage: React.FC<Props> = ({ onGetStarted, onEnterTerminal, state
           <div>
             <div className="flex items-center gap-2">
               <span className="font-headline font-bold text-base tracking-tight text-on-surface">
-                DepthGuard
+                Fathom
               </span>
               <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-md bg-secondary-container text-on-secondary-container">
                 HSKSwap
@@ -56,7 +56,7 @@ export const HeroPage: React.FC<Props> = ({ onGetStarted, onEnterTerminal, state
             onClick={() => scrollToSection("problem-solution")}
             className="hover:text-on-surface transition-colors cursor-pointer"
           >
-            Why DepthGuard
+            Why Fathom
           </button>
           <button
             type="button"
@@ -123,7 +123,7 @@ export const HeroPage: React.FC<Props> = ({ onGetStarted, onEnterTerminal, state
             <h1 className="font-headline text-3xl sm:text-5xl lg:text-6xl text-on-surface tracking-tight leading-[1.12] font-semibold">
               Trading bots trade blind.{" "}
               <br />
-              <span className="text-primary italic font-serif">DepthGuard</span> measures the depth first.
+              <span className="text-primary italic font-serif">Fathom</span> measures the depth first.
             </h1>
 
             {/* Subtitle */}
@@ -170,7 +170,7 @@ export const HeroPage: React.FC<Props> = ({ onGetStarted, onEnterTerminal, state
           </div>
         </section>
 
-        {/* ─── 2. THE PROBLEM VS SOLUTION (BLIND BOT VS DEPTHGUARD) ───────── */}
+        {/* ─── 2. THE PROBLEM VS SOLUTION (BLIND BOT VS FATHOM) ───────── */}
         <section id="problem-solution" className="space-y-6">
           <div className="text-center max-w-2xl mx-auto space-y-2">
             <span className="font-mono text-xs uppercase tracking-wider text-primary font-bold">
@@ -221,12 +221,12 @@ export const HeroPage: React.FC<Props> = ({ onGetStarted, onEnterTerminal, state
               </div>
             </div>
 
-            {/* DepthGuard Card */}
+            {/* Fathom Card */}
             <div className="p-7 rounded-3xl bg-secondary-container/40 border border-primary/30 space-y-4 shadow-soft ring-1 ring-primary/20">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-primary font-headline font-bold text-base">
                   <CheckCircle2 className="w-5 h-5 shrink-0" />
-                  <span>DepthGuard Autonomous Agent</span>
+                  <span>Fathom Autonomous Agent</span>
                 </div>
                 <span className="font-mono text-[10px] font-bold text-primary uppercase px-2 py-0.5 rounded-full bg-secondary-container">
                   Liquidity-Aware
@@ -292,7 +292,7 @@ export const HeroPage: React.FC<Props> = ({ onGetStarted, onEnterTerminal, state
                 QuoterV2 Preflight Sweep
               </h3>
               <p className="font-body text-xs text-on-surface-variant leading-relaxed">
-                Before generating calldata, DepthGuard queries pool quotes at 1%, 2%, 5%, 10%, 25%, 50%, and 100% of vault balance. It binary-searches the maximum safe trade size.
+                Before generating calldata, Fathom queries pool quotes at 1%, 2%, 5%, 10%, 25%, 50%, and 100% of vault balance. It binary-searches the maximum safe trade size.
               </p>
             </div>
 
@@ -326,7 +326,7 @@ export const HeroPage: React.FC<Props> = ({ onGetStarted, onEnterTerminal, state
         <section className="rounded-3xl bg-surface-container-low border border-outline-variant/40 p-8 sm:p-12 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-soft">
           <div className="space-y-2 max-w-xl">
             <h3 className="font-headline text-2xl sm:text-3xl text-on-surface font-semibold">
-              Ready to experience DepthGuard live?
+              Ready to experience Fathom live?
             </h3>
             <p className="font-body text-sm text-on-surface-variant">
               Launch the Trading Terminal to customize your risk profile, chat with the agent, trigger testnet price moves, and inspect verifiable decision proofs on-chain.
@@ -348,7 +348,7 @@ export const HeroPage: React.FC<Props> = ({ onGetStarted, onEnterTerminal, state
         {/* ─── Footer ──────────────────────────────────────────────────────── */}
         <footer className="border-t border-outline-variant/30 py-8 text-center text-xs text-on-surface-variant/80 space-y-2">
           <p className="font-mono text-[11px]">
-            DepthGuard · HSK Chain Horizon Hackathon 2026 (Track 1: AI Agent Trading)
+            Fathom · HSK Chain Horizon Hackathon 2026 (Track 1: AI Agent Trading)
           </p>
           <p className="text-[10px] text-on-surface-variant/60">
             Tested on HSK Testnet (Chain ID 133) · Reference on HSK Mainnet (Chain ID 177) · Non-custodial Solidity ExecutionGuard

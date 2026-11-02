@@ -29,7 +29,7 @@ export const LandingPage: React.FC<Props> = ({ state, onLaunchTerminal }) => {
           {/* Headline */}
           <h1 className="font-headline text-3xl sm:text-5xl lg:text-6xl text-on-surface tracking-tight leading-[1.15]">
             Trading bots trade blind.<br />
-            <span className="text-primary italic">DepthGuard</span> measures the depth first.
+            <span className="text-primary italic">Fathom</span> measures the depth first.
           </h1>
 
           {/* Subtitle */}

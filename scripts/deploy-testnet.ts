@@ -128,7 +128,7 @@ async function sendTx(wallet: any, txReq: any, desc: string): Promise<`0x${strin
 
 async function main() {
   console.log("=================================================================");
-  console.log("  DEPTHGUARD — REAL ON-CHAIN TESTNET DEPLOYMENT");
+  console.log("  FATHOM — REAL ON-CHAIN TESTNET DEPLOYMENT");
   console.log("=================================================================\n");
 
   const ownerBal = await publicClient.getBalance({ address: ownerAccount.address });

@@ -1,4 +1,4 @@
-# 🛡️ DEPTHGUARD
+# 🛡️ FATHOM
 
 > **An autonomous AI trading agent for HSKSwap that *sizes every order to the pool's real liquidity*, and records every decision — executed, trimmed, or refused — on-chain with an execution-quality scorecard.**
 
@@ -13,17 +13,17 @@ Traditional trading bots decide *what* to trade, then blindly fire an order of f
 Existing guards simply cap maximum trade size or place stop-loss triggers. None answers the fundamental question:
 > **"Can this pool absorb my order at an acceptable cost right now?"**
 
-**DepthGuard combines AI-driven autonomy with deterministic mathematical risk controls across two core innovations:**
+**Fathom combines AI-driven autonomy with deterministic mathematical risk controls across two core innovations:**
 
 ### USP 1 — Depth-Aware Sizing
-Before executing any trade, DepthGuard sweeps real quotes across multiple balance fractions (1% to 100%), constructs the live price impact curve via `QuoterV2`, and uses binary search to compute the **largest safe order size that stays strictly within the user's impact budget** (e.g. 60 bps).
+Before executing any trade, Fathom sweeps real quotes across multiple balance fractions (1% to 100%), constructs the live price impact curve via `QuoterV2`, and uses binary search to compute the **largest safe order size that stays strictly within the user's impact budget** (e.g. 60 bps).
 - **`EXECUTE_FULL`**: Order impact is within budget.
 - **`EXECUTE_TRIMMED`**: "You requested 100 tUSDT, but safe capacity is 42.50 tUSDT — executing 42.50 tUSDT."
 - **`NO_TRADE`**: Pool is too thin; order refused with on-chain reason code `IMPACT_TOO_HIGH`.
 - **On-Chain Spot Floor:** `ExecutionGuard.sol` independently computes the expected output at the pool's `slot0` spot price and reverts if `amountOutMin` is below policy floor. A compromised agent can never trade at predatory prices.
 
 ### USP 2 — On-Chain Decision Ledger + Execution Scorecard
-Rivals only prove what they traded. **DepthGuard also proves what it refused to trade.**
+Rivals only prove what they traded. **Fathom also proves what it refused to trade.**
 - Every executed trade emits `TradeExecuted` with rationale hash and quote block.
 - Refused trades emit `TradeRejected` on-chain with exact impact and reason codes.
 - The dashboard displays a live **Execution-Quality Scorecard**:
@@ -52,7 +52,7 @@ To adhere strictly to hackathon rules and scientific integrity, all modes in the
 
 ## 📋 Track 1 Problem Statement Checklist
 
-| # | Requirement | Implementation in DepthGuard | Status |
+| # | Requirement | Implementation in Fathom | Status |
 |---|---|---|---|
 | **R1** | Built on HSK Chain / HSKSwap | Smart vault (`ExecutionGuard.sol`) routes trades to HSKSwap `SwapRouter02` (`0xa6914E66...`) | ✅ Complete |
 | **R2** | Market Monitoring | Poller queries testnet pool (`slot0`, liquidity) and mainnet reference price each tick | ✅ Complete |
@@ -90,28 +90,28 @@ All tests can be executed directly from a clean checkout:
 
 ### 1. Smart Contract Test Suite (Foundry)
 ```bash
-cd depthguard/contracts
+cd fathom/contracts
 forge test -v
 ```
 **Results:** **32 passed, 0 failed** (including 1,000 fuzz runs each for invariant checks, per-trade cap enforcement, and nonce replay prevention).
 
 ### 2. Agent Test Suite (Vitest)
 ```bash
-cd depthguard/agent
+cd fathom/agent
 npm test
 ```
 **Results:** **31 passed, 0 failed** (covering `price.ts`, `portfolio.ts`, `preflight.ts`, `intent.ts` parity, and `chat.ts` prompt-injection resistance).
 
 ### 3. Live On-Chain End-to-End Verification
 ```bash
-cd depthguard/agent
+cd fathom/agent
 npx tsx ../scripts/verify-live.ts
 ```
 **Results:** **14/14 on-chain checks passed** (RPC, bytecodes, policy, real spot/ref pricing, contract floor parity, QuoterV2 depth, and confirmed receipts).
 
 ### 3. Frontend Production Build (Vite)
 ```bash
-cd depthguard/web
+cd fathom/web
 npm run build
 ```
 **Results:** Builds cleanly without errors or warnings (`dist/index.html`, WebGL assets, Tailwind styles).
@@ -120,7 +120,7 @@ npm run build
 
 ## 🎨 Dual-Interface User Experience (Landing Page + Trading Terminal)
 
-DepthGuard features a dual-experience architecture with smooth one-click transitions:
+Fathom features a dual-experience architecture with smooth one-click transitions:
 
 1. **Interactive WebGL Landing Page (Overview)**
    - **Interactive Liquidity Orb:** Morphing WebGL fluid mesh that ripples and reacts dynamically to cursor position.
@@ -136,7 +136,7 @@ DepthGuard features a dual-experience architecture with smooth one-click transit
 
 ---
 
-## 🚀 Running DepthGuard Locally
+## 🚀 Running Fathom Locally
 
 ### Prerequisites
 - Node.js v20+ or v24
@@ -144,7 +144,7 @@ DepthGuard features a dual-experience architecture with smooth one-click transit
 
 ### Step 1: Clone and Configure
 ```bash
-cd depthguard
+cd fathom
 cp .env.example .env
 ```
 Fill in your Groq or Gemini API key (optional; system includes automatic deterministic rules fallback).

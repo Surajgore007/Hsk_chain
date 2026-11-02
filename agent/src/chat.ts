@@ -174,7 +174,7 @@ export function generateThoughtProcess(
   return steps;
 }
 
-const SYSTEM_PROMPT = `You are a strict natural language parser for DepthGuard, an autonomous AI trading agent for HSKSwap on HSK Chain.
+const SYSTEM_PROMPT = `You are a strict natural language parser for Fathom, an autonomous AI trading agent for HSKSwap on HSK Chain.
 Your ONLY role is to parse the user's message into a structured JSON intent.
 You NEVER make financial recommendations, generate quotes, or execute trades.
 OUTPUT JSON ONLY matching one of these intent types:
@@ -334,7 +334,7 @@ export async function processChatMessage(
       if (parsed.assetPair?.toUpperCase().includes("WHSK")) {
         reply = `Target asset pair verified: **WHSK / tUSDT** (Fee tier: 3000 / 0.3%).`;
       } else {
-        reply = `Pair **${parsed.assetPair}** is not supported in P0. DepthGuard operates exclusively on the verified WHSK/tUSDT pool.`;
+        reply = `Pair **${parsed.assetPair}** is not supported in P0. Fathom operates exclusively on the verified WHSK/tUSDT pool.`;
       }
       break;
 

@@ -70,7 +70,7 @@ export const LoadingScreen: React.FC<Props> = ({ onDone }) => {
 
         <div className="text-center space-y-1">
           <h2 className="font-headline text-2xl font-semibold text-on-surface">Calibrating your agent</h2>
-          <p className="text-sm text-on-surface-variant font-body">Setting up DepthGuard with your preferences</p>
+          <p className="text-sm text-on-surface-variant font-body">Setting up Fathom with your preferences</p>
         </div>
 
         {/* Progress bar */}

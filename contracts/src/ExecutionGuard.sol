@@ -2,7 +2,7 @@
 pragma solidity ^0.8.24;
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  ExecutionGuard.sol — DepthGuard · HSK Chain Hackathon 2026
+//  ExecutionGuard.sol — Fathom · HSK Chain Hackathon 2026
 //
 //  PURPOSE: A non-custodial vault that lets a designated OPERATOR swap tokens
 //  through a single approved HSKSwap router, within strict on-chain policy

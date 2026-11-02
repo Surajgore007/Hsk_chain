@@ -1,5 +1,5 @@
 /**
- * config.ts — DepthGuard configuration loader
+ * config.ts — Fathom configuration loader
  * Reads .env, validates, and exports typed config.
  * NEVER logs private keys.
  */

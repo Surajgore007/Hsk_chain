@@ -32,7 +32,7 @@ export const OnboardingModal: React.FC<Props> = ({
       maxTradePct: riskPreference === "conservative" ? 5 : riskPreference === "balanced" ? 10 : 20,
     };
     try {
-      localStorage.setItem("depthguard_profile", JSON.stringify(finalProfile));
+      localStorage.setItem("fathom_profile", JSON.stringify(finalProfile));
     } catch {}
     onComplete(finalProfile);
   };
@@ -45,7 +45,7 @@ export const OnboardingModal: React.FC<Props> = ({
       maxTradePct: 10,
     };
     try {
-      localStorage.setItem("depthguard_profile", JSON.stringify(defaults));
+      localStorage.setItem("fathom_profile", JSON.stringify(defaults));
     } catch {}
     onComplete(defaults);
   };
@@ -59,7 +59,7 @@ export const OnboardingModal: React.FC<Props> = ({
             <div className="w-8 h-8 rounded-xl bg-primary text-white flex items-center justify-center shadow-soft">
               <Shield className="w-4 h-4" />
             </div>
-            <span className="font-headline font-bold text-base text-on-surface">DepthGuard</span>
+            <span className="font-headline font-bold text-base text-on-surface">Fathom</span>
             <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-md bg-secondary-container text-on-secondary-container">
               Personalized Setup
             </span>
@@ -69,7 +69,7 @@ export const OnboardingModal: React.FC<Props> = ({
             Tailor Your Trading Agent
           </h2>
           <p className="font-body text-xs sm:text-sm text-on-surface-variant leading-relaxed">
-            Configure your risk tolerance and execution rules. DepthGuard adapts its QuoterV2 preflight checks and smart contract floors to match your profile.
+            Configure your risk tolerance and execution rules. Fathom adapts its QuoterV2 preflight checks and smart contract floors to match your profile.
           </p>
         </div>
 

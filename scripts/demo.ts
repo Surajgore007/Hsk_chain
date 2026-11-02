@@ -22,7 +22,7 @@ async function api(path: string, method = "GET", body?: any) {
 
 async function main() {
   console.log("================================================================");
-  console.log("  DEPTHGUARD — AUTONOMOUS LIQUIDITY-AWARE AGENT DEMO");
+  console.log("  FATHOM — AUTONOMOUS LIQUIDITY-AWARE AGENT DEMO");
   console.log("================================================================\n");
 
   // Step 1: System State & Mode

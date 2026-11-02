@@ -1,8 +1,8 @@
-# DepthGuard System Architecture
+# Fathom System Architecture
 
 ## Overview
-DepthGuard is an autonomous AI trading agent system designed specifically for HSKSwap on HSK Chain.
-Unlike conventional bots that fire fixed order sizes regardless of pool depth, DepthGuard:
+Fathom is an autonomous AI trading agent system designed specifically for HSKSwap on HSK Chain.
+Unlike conventional bots that fire fixed order sizes regardless of pool depth, Fathom:
 1. Sweeps the pool's real-time liquidity depth using Uniswap-V3 QuoterV2.
 2. Derives the price impact curve and dynamically sizes the trade to stay within the user's risk budget.
 3. Automatically trims oversized orders (`EXECUTE_TRIMMED`) or refuses hazardous trades (`NO_TRADE`).
@@ -22,7 +22,7 @@ Unlike conventional bots that fire fixed order sizes regardless of pool depth, D
                                       | HTTP & SSE Stream
                                       v
  +-------------------------------------------------------------------------+
- |                        DepthGuard Agent Service                         |
+ |                        Fathom Agent Service                         |
  |                       Node.js + TypeScript + Viem                       |
  |                                                                         |
  |  +--------------------+   +---------------------+   +----------------+  |

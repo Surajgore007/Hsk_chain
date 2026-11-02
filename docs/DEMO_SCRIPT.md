@@ -1,6 +1,6 @@
-# DEPTHGUARD — 100-SECOND LIVE DEMO SCRIPT
+# FATHOM — 100-SECOND LIVE DEMO SCRIPT
 
-> **A step-by-step walkthrough for judges and evaluators to reproduce or present DepthGuard live.**
+> **A step-by-step walkthrough for judges and evaluators to reproduce or present Fathom live.**
 
 ---
 
@@ -8,7 +8,7 @@
 
 | Time | Segment | Screen / Interface | What to Show / Say |
 | :--- | :--- | :--- | :--- |
-| **0:00 - 0:15** | **The Hook** | Hero Page | *"Most DEX bots decide what to trade and fire blind orders. In thin pools, they suffer catastrophic price impact. DepthGuard is the first agent that sizes orders to the pool's real depth."* |
+| **0:00 - 0:15** | **The Hook** | Hero Page | *"Most DEX bots decide what to trade and fire blind orders. In thin pools, they suffer catastrophic price impact. Fathom is the first agent that sizes orders to the pool's real depth."* |
 | **0:15 - 0:35** | **Interactive Simulator** | Overview -> Simulator | Drag the slider from 5 to 120 WHSK. Show how the Sizer calculates real-time price impact, identifies the Safe vs Trim zone, and refuses deep distortion. |
 | **0:35 - 0:50** | **Autonomous Execution** | Trading Terminal | Show the terminal. Note the **LIVE HSK TESTNET** honest banner and real-time heartbeat. Show the last trade executed on HSKSwap with verified Blockscout receipt. |
 | **0:50 - 1:05** | **On-Chain Refusal** | Chat Interface | Type \`"Buy 100% of my balance"\`. Agent sweeps QuoterV2, detects >400 bps impact, and issues a cryptographically recorded **TradeRejected** on-chain. |
@@ -23,15 +23,15 @@ If running the terminal demonstration programmatically:
 
 ```bash
 # Terminal 1: Start Agent Server
-cd depthguard/agent
+cd fathom/agent
 npm run dev
 
 # Terminal 2: Start Web UI
-cd depthguard/web
+cd fathom/web
 npm run dev
 
 # Terminal 3: Run Scripted 100-Second Demo
-cd depthguard/agent
+cd fathom/agent
 npm run demo
 ```
 

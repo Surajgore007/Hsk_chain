@@ -124,7 +124,7 @@ async function execOwnerTx(actionName: string, writeFn: (nonce: number, gasPrice
 
 async function main() {
   console.log("=================================================================");
-  console.log("  DEPTHGUARD — REAL ON-CHAIN TESTNET DEPLOYMENT (STAGE 2)");
+  console.log("  FATHOM — REAL ON-CHAIN TESTNET DEPLOYMENT (STAGE 2)");
   console.log("=================================================================\n");
 
   const ownerBal = await publicClient.getBalance({ address: ownerAccount.address });

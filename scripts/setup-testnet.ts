@@ -17,7 +17,7 @@ import { resolve } from "path";
 
 async function main() {
   console.log("=================================================");
-  console.log("  DEPTHGUARD — HSK TESTNET SETUP SCRIPT");
+  console.log("  FATHOM — HSK TESTNET SETUP SCRIPT");
   console.log("=================================================");
 
   // Check if .env exists
@@ -44,7 +44,7 @@ async function main() {
     console.log("Owner will distribute small gas funds to Operator and Mover.");
 
     // Write to .env
-    const envContent = `# DEPTHGUARD ENVIRONMENT CONFIG
+    const envContent = `# FATHOM ENVIRONMENT CONFIG
 RPC_TESTNET=https://testnet.hsk.xyz
 RPC_MAINNET_READONLY=https://mainnet.hsk.xyz
 CHAIN_ID=133

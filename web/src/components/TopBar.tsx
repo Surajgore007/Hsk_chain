@@ -37,7 +37,7 @@ export const TopBar: React.FC<Props> = ({
           <div className="hidden sm:block">
             <div className="flex items-center gap-1.5">
               <span className="font-headline font-bold text-sm tracking-tight text-on-surface">
-                DepthGuard
+                Fathom
               </span>
               <span className="text-[9px] font-mono font-semibold px-1.5 py-0.5 rounded-md bg-secondary-container text-on-secondary-container">
                 HSKSwap

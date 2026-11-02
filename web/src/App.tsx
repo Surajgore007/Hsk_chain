@@ -27,7 +27,7 @@ export function App() {
   // ── Flow State Machine ─────────────────────────────────────────────────────
   const [flow, setFlow] = useState<AppFlow>(() => {
     try {
-      return localStorage.getItem("depthguard_profile") ? "HERO" : "HERO";
+      return localStorage.getItem("fathom_profile") ? "HERO" : "HERO";
     } catch {
       return "HERO";
     }
@@ -38,7 +38,7 @@ export function App() {
   // ── User Profile ──────────────────────────────────────────────────────────
   const [userProfile, setUserProfile] = useState<UserProfile | null>(() => {
     try {
-      const saved = localStorage.getItem("depthguard_profile");
+      const saved = localStorage.getItem("fathom_profile");
       return saved ? JSON.parse(saved) : null;
     } catch {
       return null;
@@ -79,7 +79,7 @@ export function App() {
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
     const name = (() => {
       try {
-        const p = localStorage.getItem("depthguard_profile");
+        const p = localStorage.getItem("fathom_profile");
         return p ? JSON.parse(p).name : null;
       } catch {
         return null;
@@ -89,7 +89,7 @@ export function App() {
       {
         id: "welcome-1",
         sender: "agent",
-        text: `👋 Welcome${name ? `, ${name}` : ""} to DepthGuard — Liquidity-Aware AI Trading Agent on HSKSwap (HSK Testnet).\n\nI monitor pool liquidity via QuoterV2 and enforce hard price impact budgets before execution.\n\nTry typing: **status**, **buy 20%**, **be more cautious**, or **why did you refuse?**`,
+        text: `👋 Welcome${name ? `, ${name}` : ""} to Fathom — Liquidity-Aware AI Trading Agent on HSKSwap (HSK Testnet).\n\nI monitor pool liquidity via QuoterV2 and enforce hard price impact budgets before execution.\n\nTry typing: **status**, **buy 20%**, **be more cautious**, or **why did you refuse?**`,
         timestamp: Date.now(),
         parserBadge: "LLM",
         thoughtProcess: [
@@ -287,7 +287,7 @@ export function App() {
       {
         id: "welcome-personalized",
         sender: "agent",
-        text: `✨ Setup complete, **${profile.name}**! DepthGuard is now calibrated:\n\n- **Profile:** ${profile.riskPreference.toUpperCase()}\n- **Impact Budget:** ${budget} bps cap\n- **Execution:** ${profile.executionMode === "manual" ? "Human Approval (Preview & Confirm)" : "Autonomous Auto-Execution"}\n\nType **status** to see live state, or **buy 20%** to try a trade.`,
+        text: `✨ Setup complete, **${profile.name}**! Fathom is now calibrated:\n\n- **Profile:** ${profile.riskPreference.toUpperCase()}\n- **Impact Budget:** ${budget} bps cap\n- **Execution:** ${profile.executionMode === "manual" ? "Human Approval (Preview & Confirm)" : "Autonomous Auto-Execution"}\n\nType **status** to see live state, or **buy 20%** to try a trade.`,
         timestamp: Date.now(),
         parserBadge: "LLM",
         thoughtProcess: [

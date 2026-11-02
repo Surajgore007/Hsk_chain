@@ -1,7 +1,7 @@
 {
-  "name": "depthguard",
+  "name": "fathom",
   "version": "1.0.0",
-  "description": "DepthGuard — Liquidity-Aware AI Trading Agent for HSKSwap",
+  "description": "Fathom — Liquidity-Aware AI Trading Agent for HSKSwap",
   "private": true,
   "scripts": {
     "test:contracts": "cd contracts && forge test",

@@ -1,4 +1,4 @@
-# DEPTHGUARD — OFFICIAL HACKATHON SUBMISSION DOCUMENT
+# FATHOM — OFFICIAL HACKATHON SUBMISSION DOCUMENT
 
 **Track**: Track 1: AI Agent Trading  
 **Event**: HSK Chain Horizon Hackathon · India (Mumbai Edition)  
@@ -12,12 +12,12 @@
 
 Traditional algorithmic and AI trading bots decide **what** to trade and then fire blind orders directly into DEX pools. In low-liquidity environments, this naive execution causes devastating capital loss via price impact and MEV slippage.
 
-**DepthGuard** is the first autonomous, liquidity-aware trading agent designed specifically for HSKSwap. Before executing any order, DepthGuard:
+**Fathom** is the first autonomous, liquidity-aware trading agent designed specifically for HSKSwap. Before executing any order, Fathom:
 1. **Sweeps Real On-Chain Depth**: Calls \`QuoterV2\` across balance increments to model the pool's non-linear liquidity curve.
 2. **Binary Searches Safe Capacity**: Calculates the maximum viable trade size that stays strictly below the user's basis-point impact budget ceiling (e.g. 60 bps).
 3. **Autonomously Trims or Refuses**: Trims oversized orders to the exact safe capacity, or refuses execution with an auditable on-chain reason code.
 4. **Enforces Non-Custodial Spot Floors**: An immutable smart contract vault (\`ExecutionGuard.sol\`) checks the expected output at the pool's real-time spot price and reverts if an agent ever executes below the mathematically verified floor.
-5. **Proves What It Refused**: While rivals only log what was executed, DepthGuard writes on-chain proofs (\`TradeRejected\`) of what it refused to trade, producing a live, auditable Execution-Quality Scorecard.
+5. **Proves What It Refused**: While rivals only log what was executed, Fathom writes on-chain proofs (\`TradeRejected\`) of what it refused to trade, producing a live, auditable Execution-Quality Scorecard.
 
 ---
 

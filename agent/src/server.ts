@@ -1,5 +1,5 @@
 /**
- * server.ts — DepthGuard Agent Service & Fastify/Express API
+ * server.ts — Fathom Agent Service & Fastify/Express API
  *
  * Runs the autonomous market monitoring & trading loop on HSK Testnet.
  * Default mode is LIVE. Every number originates on-chain or through QuoterV2.
@@ -162,7 +162,7 @@ async function fetchLivePoolsAndBalances() {
       refRatio,
     };
   } catch (err) {
-    console.warn("[DepthGuard] Live pool/balance fetch error:", err);
+    console.warn("[Fathom] Live pool/balance fetch error:", err);
     return null;
   }
 }
@@ -191,7 +191,7 @@ async function refreshDepthCurve() {
       latestDepthCurve = curve.points;
     }
   } catch (err) {
-    console.warn("[DepthGuard] Quoter depth sweep error:", err);
+    console.warn("[Fathom] Quoter depth sweep error:", err);
   }
 }
 
@@ -323,7 +323,7 @@ app.post("/api/chat", async (req: Request, res: Response) => {
   const baseBalDisp = live ? `${(Number(live.whskBal) / 1e18).toFixed(4)} WHSK` : "vault WHSK";
   const quoteBalDisp = live ? `${(Number(live.usdtBal) / 1e6).toFixed(2)} tUSDT` : "vault tUSDT";
 
-  const statusSummary = `DepthGuard Active. Mode: ${isReplayMode ? MODE_LABELS.REPLAY : MODE_LABELS.LIVE_TESTNET}. Auto: ${autoEnabled ? "ON" : "OFF"}. Risk: ${currentRisk.toUpperCase()} (${RISK_PRESETS[currentRisk].impactBudgetBps} bps budget). Target: WHSK/tUSDT.`;
+  const statusSummary = `Fathom Active. Mode: ${isReplayMode ? MODE_LABELS.REPLAY : MODE_LABELS.LIVE_TESTNET}. Auto: ${autoEnabled ? "ON" : "OFF"}. Risk: ${currentRisk.toUpperCase()} (${RISK_PRESETS[currentRisk].impactBudgetBps} bps budget). Target: WHSK/tUSDT.`;
   const portfolioSummary = `Vault: ${baseBalDisp} / ${quoteBalDisp} | Spot: $${spotDisp} USDT | Ref: $${refDisp} USDT.`;
   const lastDec = ledger.getLatest();
   const lastDecisionSummary = lastDec
@@ -378,7 +378,7 @@ app.post("/api/chat", async (req: Request, res: Response) => {
     const tokenOut = tradeSide === "SELL" ? deployments.mockUSDT : deployments.whsk;
     const baseToQuote = tradeSide === "SELL";
 
-    // Run deterministic DepthGuard sizing
+    // Run deterministic Fathom sizing
     const sizeResult = await computeSize(
       publicClient,
       deployments.quoter,
@@ -943,18 +943,18 @@ async function tick() {
       }
     }
   } catch (err) {
-    console.warn("[DepthGuard] Autonomous loop tick error:", err);
+    console.warn("[Fathom] Autonomous loop tick error:", err);
   }
 }
 
 export function startServer(port = APP_CONFIG.PORT) {
   const server = app.listen(port, "0.0.0.0", async () => {
-    console.log(`[DepthGuard] Agent Server listening on http://127.0.0.1:${port}`);
+    console.log(`[Fathom] Agent Server listening on http://127.0.0.1:${port}`);
 
     // Live RPC Health Check
     try {
       const block = await publicClient.getBlockNumber();
-      console.log(`[DepthGuard] Connected to HSK Testnet (Chain 133) at Block #${block}`);
+      console.log(`[Fathom] Connected to HSK Testnet (Chain 133) at Block #${block}`);
       isReplayMode = false;
       await refreshDepthCurve();
     } catch (err) {
@@ -964,15 +964,15 @@ export function startServer(port = APP_CONFIG.PORT) {
       isReplayMode = true;
     }
 
-    console.log(`[DepthGuard] Mode: ${isReplayMode ? MODE_LABELS.REPLAY : MODE_LABELS.LIVE_TESTNET}`);
+    console.log(`[Fathom] Mode: ${isReplayMode ? MODE_LABELS.REPLAY : MODE_LABELS.LIVE_TESTNET}`);
   });
 
   server.on("error", (err: any) => {
     if (err.code === "EADDRINUSE") {
-      console.error(`[DepthGuard] Port ${port} is already in use. Please terminate the process using port ${port} or choose another PORT in .env.`);
+      console.error(`[Fathom] Port ${port} is already in use. Please terminate the process using port ${port} or choose another PORT in .env.`);
       process.exit(1);
     } else {
-      console.error(`[DepthGuard] Server error:`, err);
+      console.error(`[Fathom] Server error:`, err);
     }
   });
 

@@ -1,8 +1,8 @@
-# DepthGuard Threat Model & Security Architecture
+# Fathom Threat Model & Security Architecture
 
 ## 1. Scope & System Invariants
 
-DepthGuard is an autonomous liquidity-aware AI trading system built for HSKSwap on HSK Chain (Chain ID 133).
+Fathom is an autonomous liquidity-aware AI trading system built for HSKSwap on HSK Chain (Chain ID 133).
 The system protects user funds across three distinct trust layers:
 1. **User Interface / Chat (Untrusted):** Natural language input from end-users, potentially containing prompt injection, malformed text, or adversarial orders.
 2. **Off-Chain AI Agent Engine (Semi-Trusted):** LLM parsing service and deterministic sizer/preflight engine. The LLM acts purely as a semantic parser; it NEVER touches wallets, picks tokens, decides sizing, or executes calldata.

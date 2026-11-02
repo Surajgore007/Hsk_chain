@@ -1,4 +1,4 @@
-# DEPTHGUARD — FINAL "MAKE IT REAL" EXECUTION REPORT
+# FATHOM — FINAL "MAKE IT REAL" EXECUTION REPORT
 
 **Event**: HSK Chain Horizon Hackathon · India (Mumbai Edition)  
 **Target Track**: Track 1 — AI Agent Trading  
@@ -10,7 +10,7 @@
 
 ## 1. Executive Summary
 
-DepthGuard has been completely transformed from a prototype into a **100% verified, live on-chain production agent** running on HashKey Chain Testnet (Chain ID 133). 
+Fathom has been completely transformed from a prototype into a **100% verified, live on-chain production agent** running on HashKey Chain Testnet (Chain ID 133). 
 
 Every number displayed in the application originates directly from:
 1. Live RPC calls to HashKey Testnet and Mainnet (read-only),
@@ -98,7 +98,7 @@ Every transaction has been confirmed on HashKey Testnet with real gas and receip
 
 ```
 ================================================================
-  DEPTHGUARD — LIVE SYSTEM VERIFICATION (GATE CHECK)
+  FATHOM — LIVE SYSTEM VERIFICATION (GATE CHECK)
 ================================================================
 
 [PASS] Chain ID: Connected to HSK Testnet (Chain ID 133) at Block #35217252
@@ -139,7 +139,7 @@ VERIFICATION RESULT: 14/14 CHECKS PASSED
 
 ## 8. Closing Statement
 
-DepthGuard is ready for submission and live evaluation:
+Fathom is ready for submission and live evaluation:
 > *"The AI proposes.*  
 > *Deterministic code measures depth.*  
 > *The contract enforces the floor.*  

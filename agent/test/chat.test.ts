@@ -65,11 +65,11 @@ describe("Chat Controller & Rules Fallback Parser", () => {
 
   it("falls back gracefully without throwing error when LLM is offline", async () => {
     const res = await processChatMessage("Status", {
-      statusSummary: "DepthGuard OK",
+      statusSummary: "Fathom OK",
       portfolioSummary: "NAV 100",
       currentRisk: "balanced",
     });
-    expect(res.reply).toBe("DepthGuard OK");
+    expect(res.reply).toBe("Fathom OK");
     expect(["LLM", "rules"]).toContain(res.parserBadge);
   });
 });
