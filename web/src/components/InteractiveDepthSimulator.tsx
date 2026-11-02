@@ -101,8 +101,8 @@ export const InteractiveDepthSimulator: React.FC<{ spotPrice?: number }> = ({ sp
     decision === "EXECUTE_FULL"
       ? "#4a7c59"
       : decision === "EXECUTE_TRIMMED"
-      ? "#8c6738"
-      : "#b83230";
+        ? "#8c6738"
+        : "#b83230";
 
   return (
     <div className="rounded-3xl bg-surface-container-lowest border border-outline-variant/40 p-6 sm:p-8 shadow-card space-y-6">
@@ -168,11 +168,10 @@ export const InteractiveDepthSimulator: React.FC<{ spotPrice?: number }> = ({ sp
                   key={preset}
                   type="button"
                   onClick={() => setSize(preset)}
-                  className={`px-2 py-1 rounded-md text-xs font-mono transition-all border cursor-pointer ${
-                    size === preset
+                  className={`px-2 py-1 rounded-md text-xs font-mono transition-all border cursor-pointer ${size === preset
                       ? "bg-primary text-white border-primary font-bold shadow-soft"
                       : "bg-surface-container-lowest border-outline-variant/40 text-on-surface-variant hover:text-on-surface hover:bg-surface-container"
-                  }`}
+                    }`}
                 >
                   {preset}
                 </button>
@@ -421,22 +420,20 @@ export const InteractiveDepthSimulator: React.FC<{ spotPrice?: number }> = ({ sp
                 QuoterV2 Verdict
               </span>
               <span
-                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold tracking-wide border ${
-                  decision === "EXECUTE_FULL"
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold tracking-wide border ${decision === "EXECUTE_FULL"
                     ? "bg-secondary-container text-on-secondary-container border-primary/30"
                     : decision === "EXECUTE_TRIMMED"
-                    ? "bg-tertiary-container text-on-tertiary-container border-tertiary/30"
-                    : "bg-error-container text-on-error-container border-error/30"
-                }`}
+                      ? "bg-tertiary-container text-on-tertiary-container border-tertiary/30"
+                      : "bg-error-container text-on-error-container border-error/30"
+                  }`}
               >
                 <span
-                  className={`w-2 h-2 rounded-full ${
-                    decision === "EXECUTE_FULL"
+                  className={`w-2 h-2 rounded-full ${decision === "EXECUTE_FULL"
                       ? "bg-primary"
                       : decision === "EXECUTE_TRIMMED"
-                      ? "bg-tertiary"
-                      : "bg-error"
-                  }`}
+                        ? "bg-tertiary"
+                        : "bg-error"
+                    }`}
                 />
                 {decision}
               </span>
@@ -456,9 +453,8 @@ export const InteractiveDepthSimulator: React.FC<{ spotPrice?: number }> = ({ sp
             <div className="flex items-center justify-between text-xs py-1 border-b border-surface-container">
               <span className="text-on-surface-variant">Simulated Price Impact</span>
               <span
-                className={`font-mono font-bold ${
-                  impactBps <= budgetBps ? "text-primary" : "text-error"
-                }`}
+                className={`font-mono font-bold ${impactBps <= budgetBps ? "text-primary" : "text-error"
+                  }`}
               >
                 {impactBps} bps ({(impactBps / 100).toFixed(2)}%)
               </span>
