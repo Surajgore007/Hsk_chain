@@ -29,7 +29,9 @@ interface Props {
 const QUICK_CHIPS = [
   "status",
   "buy 20%",
-  "sell 5 WHSK",
+  "sell 20%",
+  "switch to tWETH/tUSDT",
+  "show signals",
   "be more cautious",
   "why did you refuse?",
   "show positions",

@@ -383,13 +383,39 @@ export async function processChatMessage(
       reply = `Autonomous trading poll frequency set to **${parsed.frequencySeconds} seconds**.`;
       break;
 
-    case "SET_ASSET":
-      if (parsed.assetPair?.toUpperCase().includes("WHSK")) {
-        reply = `Target asset pair verified: **WHSK / tUSDT** (Fee tier: 3000 / 0.3%).`;
+    case "SHOW_SIGNALS":
+      reply = context.signalsSummary || "Live signals: EMA fast/slow, rolling z-score, spread vs reference price, and pool depth shrinkage are monitored continuously.";
+      break;
+
+    case "WHY_HOLD":
+      reply = context.lastHoldSummary || "No hold decisions logged yet. The AI proposes HOLD when market spread is within normal bands and pool depth is stable.";
+      break;
+
+    case "SET_STOP_LOSS":
+      reply = `Stop-loss threshold set to **${parsed.stopLossPct}%**. Automatic position unwind triggers if drawdown exceeds this limit.`;
+      break;
+
+    case "SET_TAKE_PROFIT":
+      reply = `Take-profit threshold set to **${parsed.takeProfitPct}%**. Automatic profit-taking will trigger once target gains are secured.`;
+      break;
+
+    case "SET_MAX_DRAWDOWN":
+      reply = `Max portfolio drawdown set to **${parsed.maxDrawdownPct}%**. If NAV drops by this amount from its peak, the agent halts and engages the ExecutionGuard circuit breaker.`;
+      break;
+
+    case "SET_ASSET": {
+      const p = parsed.assetPair?.toUpperCase() || "";
+      if (p.includes("WETH") || p.includes("ETH")) {
+        reply = "Active pair switched to **tWETH / tUSDT** (Fee tier: 3000 / 0.3%, deep pool).";
+      } else if (p.includes("WBTC") || p.includes("BTC")) {
+        reply = "Active pair switched to **tWBTC / tUSDT** (Fee tier: 3000 / 0.3%, deep pool).";
+      } else if (p.includes("WHSK") || p.includes("HSK")) {
+        reply = "Active pair switched to **WHSK / tUSDT** (Fee tier: 3000 / 0.3%).";
       } else {
-        reply = `Pair **${parsed.assetPair}** is not supported in P0. Fathom operates exclusively on the verified WHSK/tUSDT pool.`;
+        reply = `Supported pairs: **tWETH/tUSDT**, **tWBTC/tUSDT**, and **WHSK/tUSDT**.`;
       }
       break;
+    }
 
     case "PAUSE":
       reply = "Trading loop **PAUSED**. Market monitoring and depth calculations continue in read-only mode.";

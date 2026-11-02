@@ -902,7 +902,15 @@ app.post("/api/chat", chatRateLimiter, async (req: Request, res: Response) => {
       });
 
       if (!execSwap.ok) {
-        return res.status(500).json({ error: `On-chain execution failed: ${execSwap.error}` });
+        const isCooldown = execSwap.error?.includes("COOLDOWN") || execSwap.error?.includes("0xa2724a4d");
+        const replyText = isCooldown
+          ? `⚠️ **Trade Execution Deferred**: On-chain cooldown active (${RISK_PRESETS[currentRisk].cooldownSeconds}s). The ExecutionGuard contract protects the vault by enforcing a minimum interval between consecutive trades.`
+          : `⚠️ **On-Chain Execution Blocked**: ${execSwap.error}`;
+        return res.json({
+          ...chatRes,
+          reply: replyText,
+          autoExecuted: false,
+        });
       }
 
       lastTradeTime = Date.now();
@@ -1584,23 +1592,30 @@ async function syncOnchainHistory() {
     if (deployments.executionGuardWeth) guardsToSync.push(deployments.executionGuardWeth);
     if (deployments.executionGuardWbtc) guardsToSync.push(deployments.executionGuardWbtc);
 
+    async function fetchEventsInChunks(address: `0x${string}`, eventName: any) {
+      const allEvents: any[] = [];
+      const CHUNK = 1800n;
+      for (let cur = fromBlock; cur <= toBlock; cur += CHUNK + 1n) {
+        const end = cur + CHUNK > toBlock ? toBlock : cur + CHUNK;
+        try {
+          const chunkLogs = await publicClient.getContractEvents({
+            address,
+            abi: EXECUTION_GUARD_ABI,
+            eventName,
+            fromBlock: cur,
+            toBlock: end,
+          });
+          allEvents.push(...chunkLogs);
+        } catch {}
+      }
+      return allEvents;
+    }
+
     for (const guardAddr of guardsToSync) {
       try {
         const [execLogs, rejLogs] = await Promise.all([
-          publicClient.getContractEvents({
-            address: guardAddr,
-            abi: EXECUTION_GUARD_ABI,
-            eventName: "TradeExecuted",
-            fromBlock,
-            toBlock,
-          }),
-          publicClient.getContractEvents({
-            address: guardAddr,
-            abi: EXECUTION_GUARD_ABI,
-            eventName: "TradeRejected",
-            fromBlock,
-            toBlock,
-          }),
+          fetchEventsInChunks(guardAddr, "TradeExecuted"),
+          fetchEventsInChunks(guardAddr, "TradeRejected"),
         ]);
 
         console.log(`[Fathom] Guard ${guardAddr.slice(0, 10)}...: ${execLogs.length} Executed, ${rejLogs.length} Rejected.`);
