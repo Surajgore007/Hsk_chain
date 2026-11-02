@@ -57,9 +57,13 @@ export async function sweepDepth(
     if (amountIn === 0n) continue;
 
     const quote = await quoteExactInput(client, quoterAddress, tokenIn, tokenOut, amountIn, fee);
-    if (!quote.ok || quote.amountOut === 0n) {
-      // Could not quote this size — stop sweep
+    if (!quote.ok) {
+      // Reverted (e.g. pool exhausted) — stop sweep
       break;
+    }
+    if (quote.amountOut === 0n) {
+      // Sub-dust size for quote decimals — continue to next larger size
+      continue;
     }
 
     const ideal = idealOut(sqrtPriceX96, amountIn, baseToQuote, token0IsBase);

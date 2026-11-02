@@ -236,7 +236,7 @@ async function refreshDepthCurve() {
     const live = await fetchLivePoolsAndBalances();
     if (!live) return;
 
-    const sweepBase = live.whskBal > 100000000000000n ? live.whskBal : 500000000000000n;
+    const sweepBase = live.whskBal > 500000000000000n ? live.whskBal : 500000000000000n;
     const curve = await sweepDepth(
       publicClient,
       deployments.quoter,
