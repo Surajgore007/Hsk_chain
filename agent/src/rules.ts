@@ -40,6 +40,7 @@ export interface ParsedIntent {
   impactBudgetBps?: number;
   percentOfBalance?: number;
   frequencySeconds?: number;
+  frequencyMultiplier?: number;
   assetPair?: string;
   explanation?: string;
   source: "RULES" | "LLM";
@@ -150,7 +151,9 @@ export function parseWithRules(input: string): ParsedIntent {
     lower.includes("explain last") ||
     lower.includes("why no trade") ||
     lower.includes("why was it trimmed") ||
-    lower.includes("why did you reject")
+    lower.includes("why did you reject") ||
+    lower.includes("what happened with the last trade") ||
+    lower === "explain"
   ) {
     return { intent: "EXPLAIN_LAST", source: "RULES" };
   }
@@ -177,12 +180,12 @@ export function parseWithRules(input: string): ParsedIntent {
     return { intent: "SET_SIZE", percentOfBalance: parseInt(sizeMatch[1], 10), source: "RULES" };
   }
 
-  // 11. Frequency adjustments
+  // 11. Frequency adjustments (trade less often -> x2, trade more often -> x0.5)
   if (lower.includes("trade less often") || lower.includes("slower")) {
-    return { intent: "SET_FREQUENCY", frequencySeconds: 60, source: "RULES" };
+    return { intent: "SET_FREQUENCY", frequencyMultiplier: 2, source: "RULES" };
   }
   if (lower.includes("trade more often") || lower.includes("faster")) {
-    return { intent: "SET_FREQUENCY", frequencySeconds: 20, source: "RULES" };
+    return { intent: "SET_FREQUENCY", frequencyMultiplier: 0.5, source: "RULES" };
   }
   const freqMatch = lower.match(/(?:frequency|every|interval)\s*(?:of|to|=)?\s*(\d+)\s*(?:s|sec|seconds)?/i);
   if (freqMatch) {

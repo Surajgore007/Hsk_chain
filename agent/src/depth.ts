@@ -159,17 +159,27 @@ export async function computeSize(
   dustThreshold: bigint,
   minViableBps: bigint = 20n,   // 20% of requested = min for TRIMMED
 ): Promise<SizerResult> {
-  const cappedAmount = requestedAmountIn > perTradeCap ? perTradeCap : requestedAmountIn;
+  // Quote at raw requested size first to get true requested impact
+  const rawReqQuote = await quoteExactInput(client, quoterAddress, tokenIn, tokenOut, requestedAmountIn, fee);
+  const idealAtRawReq = idealOut(sqrtPriceX96, requestedAmountIn, baseToQuote, token0IsBase);
+  const impactAtRawReq = rawReqQuote.ok && rawReqQuote.amountOut > 0n
+    ? priceImpactBps(idealAtRawReq, rawReqQuote.amountOut)
+    : 9999n;
 
-  // Quote at requested size
-  const reqQuote = await quoteExactInput(client, quoterAddress, tokenIn, tokenOut, cappedAmount, fee);
+  const isCappedByPolicy = requestedAmountIn > perTradeCap;
+  const cappedAmount = isCappedByPolicy ? perTradeCap : requestedAmountIn;
+
+  // Quote at capped amount
+  const reqQuote = isCappedByPolicy
+    ? await quoteExactInput(client, quoterAddress, tokenIn, tokenOut, cappedAmount, fee)
+    : rawReqQuote;
 
   if (!reqQuote.ok || reqQuote.amountOut === 0n) {
     return {
       decision: "NO_TRADE",
-      requestedAmountIn: cappedAmount,
+      requestedAmountIn,
       decidedAmountIn: 0n,
-      priceImpactBpsAtRequested: 9999n,
+      priceImpactBpsAtRequested: impactAtRawReq,
       priceImpactBpsAtDecided: 0n,
       quotedOut: 0n,
       minOut: 0n,
@@ -179,27 +189,44 @@ export async function computeSize(
     };
   }
 
-  const idealAtReq = idealOut(sqrtPriceX96, cappedAmount, baseToQuote, token0IsBase);
-  const impactAtReq = priceImpactBps(idealAtReq, reqQuote.amountOut);
+  const idealAtCapped = idealOut(sqrtPriceX96, cappedAmount, baseToQuote, token0IsBase);
+  const impactAtCapped = priceImpactBps(idealAtCapped, reqQuote.amountOut);
 
-  // Within budget?
-  if (impactAtReq <= impactBudgetBps) {
+  // If within budget AND not capped by policy: EXECUTE_FULL
+  if (impactAtCapped <= impactBudgetBps && !isCappedByPolicy) {
     const minOut = minOutFromSlippage(reqQuote.amountOut, slippageBps);
     return {
       decision: "EXECUTE_FULL",
-      requestedAmountIn: cappedAmount,
+      requestedAmountIn,
       decidedAmountIn: cappedAmount,
-      priceImpactBpsAtRequested: impactAtReq,
-      priceImpactBpsAtDecided: impactAtReq,
+      priceImpactBpsAtRequested: impactAtRawReq,
+      priceImpactBpsAtDecided: impactAtCapped,
       quotedOut: reqQuote.amountOut,
       minOut,
       reasonCode: "OK",
-      humanReason: `Price impact ${impactAtReq} bps is within your ${impactBudgetBps} bps budget.`,
+      humanReason: `Price impact ${impactAtCapped} bps is within your ${impactBudgetBps} bps budget.`,
       depthCurve: [],
     };
   }
 
-  // Need to trim — find max safe
+  // If capped by policy and impact at capped is within budget: EXECUTE_TRIMMED
+  if (isCappedByPolicy && impactAtCapped <= impactBudgetBps) {
+    const minOut = minOutFromSlippage(reqQuote.amountOut, slippageBps);
+    return {
+      decision: "EXECUTE_TRIMMED",
+      requestedAmountIn,
+      decidedAmountIn: cappedAmount,
+      priceImpactBpsAtRequested: impactAtRawReq,
+      priceImpactBpsAtDecided: impactAtCapped,
+      quotedOut: reqQuote.amountOut,
+      minOut,
+      reasonCode: "TRIMMED_TO_FIT",
+      humanReason: `Order trimmed to per-trade cap (${cappedAmount}) to comply with vault policy (impact: ${impactAtCapped} bps within ${impactBudgetBps} bps budget).`,
+      depthCurve: [],
+    };
+  }
+
+  // Need to trim further via binary search
   const maxSafe = await binarySearchMaxSafe(
     client, quoterAddress, tokenIn, tokenOut, fee,
     cappedAmount, impactBudgetBps,
@@ -207,18 +234,18 @@ export async function computeSize(
   );
 
   // Check if trim is viable
-  const minViableAmt = (cappedAmount * minViableBps) / 100n;
+  const minViableAmt = (requestedAmountIn * minViableBps) / 100n;
   if (maxSafe < minViableAmt || maxSafe < dustThreshold) {
     return {
       decision: "NO_TRADE",
-      requestedAmountIn: cappedAmount,
+      requestedAmountIn,
       decidedAmountIn: 0n,
-      priceImpactBpsAtRequested: impactAtReq,
+      priceImpactBpsAtRequested: impactAtRawReq,
       priceImpactBpsAtDecided: 0n,
       quotedOut: 0n,
       minOut: 0n,
       reasonCode: "IMPACT_TOO_HIGH",
-      humanReason: `Estimated price impact ${impactAtReq} bps exceeds your ${impactBudgetBps} bps budget. Max safe size (${maxSafe}) is below minimum viable (${minViableAmt}).`,
+      humanReason: `Estimated price impact ${impactAtRawReq} bps exceeds your ${impactBudgetBps} bps budget. Max safe size (${maxSafe}) is below minimum viable (${minViableAmt}).`,
       depthCurve: [],
     };
   }
@@ -231,14 +258,14 @@ export async function computeSize(
 
   return {
     decision: "EXECUTE_TRIMMED",
-    requestedAmountIn: cappedAmount,
+    requestedAmountIn,
     decidedAmountIn: maxSafe,
-    priceImpactBpsAtRequested: impactAtReq,
+    priceImpactBpsAtRequested: impactAtRawReq,
     priceImpactBpsAtDecided: impactAtTrim,
     quotedOut: trimQuote.ok ? trimQuote.amountOut : 0n,
     minOut,
     reasonCode: "TRIMMED_TO_FIT",
-    humanReason: `Estimated price impact at requested size is ${impactAtReq} bps — exceeds ${impactBudgetBps} bps budget. Max safe size is ${maxSafe} (${(maxSafe * 10000n / cappedAmount)}‱ of requested). Executing trimmed amount.`,
+    humanReason: `Estimated price impact at requested size is ${impactAtRawReq} bps — exceeds ${impactBudgetBps} bps budget. Max safe size is ${maxSafe}. Executing trimmed amount.`,
     depthCurve: [],
   };
 }

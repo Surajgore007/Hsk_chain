@@ -39,7 +39,8 @@ const SizeIntentSchema = z.object({
 
 const FrequencyIntentSchema = z.object({
   intent: z.literal("SET_FREQUENCY"),
-  frequencySeconds: z.number().int().min(10).max(600),
+  frequencySeconds: z.number().int().min(10).max(600).optional(),
+  frequencyMultiplier: z.number().positive().optional(),
 });
 
 const AssetIntentSchema = z.object({
@@ -104,7 +105,7 @@ export function generateThoughtProcess(
 ): ThoughtStep[] {
   const steps: ThoughtStep[] = [];
 
-  // Step 1: Parser & Intent Classification
+  // Step 1: Parser & Intent Classification (Runs for every incoming message)
   const modelName = APP_CONFIG.GROQ_MODEL.split("/")[1] || APP_CONFIG.GROQ_MODEL || "GPT-OSS";
   steps.push({
     title: `1. Intent Parsing via ${badge === "LLM" ? `Groq (${modelName})` : "Deterministic Rules"}`,
@@ -112,18 +113,17 @@ export function generateThoughtProcess(
     status: "done",
   });
 
-  // Step 2: Pool & Reserves Context
-  const poolShort = ctx?.poolAddress ? `${ctx.poolAddress.slice(0, 6)}...${ctx.poolAddress.slice(-4)}` : "0xe0f4...dfaf";
-  const spotStr = ctx?.spotPriceDisplay !== undefined ? `${ctx.spotPriceDisplay.toFixed(4)} USDT` : "live spot";
-  const refStr = ctx?.refPriceDisplay !== undefined ? `${ctx.refPriceDisplay.toFixed(4)} USDT` : "mainnet ref";
-  steps.push({
-    title: "2. Pool Liquidity & State Inspection",
-    detail: `Querying HSK Testnet pool ${poolShort} (WHSK/tUSDT). Reading slot0 (${spotStr}) vs HSK Mainnet reference price (${refStr}).`,
-    status: "done",
-  });
-
-  // Step 3: Intent-specific reasoning
+  // Steps 2+: ONLY include steps that actually executed for this specific intent
   if (parsed.intent === "TRADE" && parsed.trade) {
+    const poolShort = ctx?.poolAddress ? `${ctx.poolAddress.slice(0, 6)}...${ctx.poolAddress.slice(-4)}` : "0xe0f4...dfaf";
+    const spotStr = ctx?.spotPriceDisplay !== undefined ? `${ctx.spotPriceDisplay.toFixed(4)} USDT` : "live spot";
+    const refStr = ctx?.refPriceDisplay !== undefined ? `${ctx.refPriceDisplay.toFixed(4)} USDT` : "mainnet ref";
+    steps.push({
+      title: "2. Pool Liquidity & State Inspection",
+      detail: `Querying HSK Testnet pool ${poolShort} (WHSK/tUSDT). Reading slot0 (${spotStr}) vs HSK Mainnet reference price (${refStr}).`,
+      status: "done",
+    });
+
     const budget = parsed.trade.maxImpactBps || Number(RISK_PRESETS[currentRisk].impactBudgetBps);
     steps.push({
       title: "3. QuoterV2 Depth Curve Sweep",
@@ -139,33 +139,51 @@ export function generateThoughtProcess(
     const preset = parsed.riskPreset || "custom";
     const budget = parsed.impactBudgetBps || (parsed.riskPreset ? Number(RISK_PRESETS[parsed.riskPreset].impactBudgetBps) : 60);
     steps.push({
-      title: "3. Risk Calibration & Impact Budget Update",
-      detail: `Adjusting policy to ${preset.toUpperCase()}: impact ceiling set to ${budget} bps. Sizer will auto-trim future orders exceeding this limit.`,
+      title: "2. Risk Calibration & Impact Budget Update",
+      detail: `Calibrated policy to ${preset.toUpperCase()}: impact ceiling set to ${budget} bps. Sizer will auto-trim future orders exceeding this limit.`,
+      status: "done",
+    });
+  } else if (parsed.intent === "SET_FREQUENCY") {
+    steps.push({
+      title: "2. Polling Cadence Adjustment",
+      detail: "Recalculated autonomous trading loop timer and updated background interval.",
       status: "done",
     });
   } else if (parsed.intent === "STATUS" || parsed.intent === "SHOW_POSITIONS" || parsed.intent === "SHOW_PNL") {
     const baseDisp = ctx?.baseBal ?? "on-chain WHSK";
     const quoteDisp = ctx?.quoteBal ?? "on-chain tUSDT";
     steps.push({
-      title: "3. State & NAV Aggregation",
-      detail: `Aggregated on-chain token balances (${baseDisp}, ${quoteDisp}), NAV calculation, and active autonomous loop parameters.`,
+      title: "2. Portfolio & State Aggregation",
+      detail: `Queried on-chain token balances (${baseDisp}, ${quoteDisp}), active network block, and NAV parameters.`,
       status: "done",
     });
   } else if (parsed.intent === "EMERGENCY_STOP" || parsed.intent === "PAUSE") {
     steps.push({
-      title: "3. Circuit Breaker Engagement",
-      detail: "Halt signal broadcast. Calling ExecutionGuard.pause() to prevent any contract-level swap transactions.",
+      title: "2. Safety Circuit Interlock",
+      detail: "Halt signal recorded. Autonomous order generator paused to prevent unintended swaps.",
       status: "warning",
+    });
+  } else if (parsed.intent === "RESUME") {
+    steps.push({
+      title: "2. On-Chain Pause Verification",
+      detail: "Verified ExecutionGuard.paused() state on-chain before resuming execution loop.",
+      status: "done",
     });
   } else if (parsed.intent === "EXPLAIN_LAST") {
     steps.push({
-      title: "3. In-Memory Decision Ledger Lookup",
-      detail: "Retrieved last trade decision record: cross-referencing requested size, decided size, QuoterV2 curve, and loss avoided.",
+      title: "2. Decision Ledger Query",
+      detail: "Retrieved last decision record: cross-referencing requested vs decided size, price impact, and on-chain proof hash.",
+      status: "done",
+    });
+  } else if (parsed.intent === "AUTO_ON" || parsed.intent === "AUTO_OFF") {
+    steps.push({
+      title: "2. Autonomous Mode Controller",
+      detail: `Switched autonomous execution mode to ${parsed.intent === "AUTO_ON" ? "ENABLED" : "DISABLED"}.`,
       status: "done",
     });
   } else {
     steps.push({
-      title: "3. Policy Guardrail Verification",
+      title: "2. Policy Guardrail Verification",
       detail: "No unauthorized funds or invalid routing requested. Deterministic safety boundaries maintained.",
       status: "done",
     });

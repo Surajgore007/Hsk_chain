@@ -214,76 +214,186 @@ export const Chat: React.FC<Props> = ({
                 <p className="whitespace-pre-line font-sans">{m.text}</p>
 
                 {/* Trade Preview Card */}
-                {m.previewCard && (
-                  <div className="mt-3 p-3.5 rounded-xl bg-surface-container-lowest border border-outline-variant/50 shadow-soft text-on-surface text-xs space-y-2.5">
-                    <div className="flex items-center justify-between font-semibold border-b border-surface-container pb-2">
-                      <span className="text-primary flex items-center gap-1.5 font-headline">
-                        <ShieldCheck className="w-4 h-4" />
-                        <span>Order Pre-Flight Verification</span>
-                      </span>
-                      <span className="font-mono text-[10px] text-on-surface-variant">
-                        ID: {m.previewId?.slice(-6)}
-                      </span>
-                    </div>
+                {m.previewCard && (() => {
+                  const card = m.previewCard as any;
+                  const isSell = card.side === "SELL";
+                  const reqFmt = card.requestedAmountIn
+                    ? isSell
+                      ? `${(Number(card.requestedAmountIn) / 1e18).toFixed(6)} WHSK`
+                      : `${(Number(card.requestedAmountIn) / 1e6).toFixed(4)} tUSDT`
+                    : `${card.amount?.value} ${card.amount?.unit}`;
+                  const decFmt = card.decidedAmountIn
+                    ? isSell
+                      ? `${(Number(card.decidedAmountIn) / 1e18).toFixed(6)} WHSK`
+                      : `${(Number(card.decidedAmountIn) / 1e6).toFixed(4)} tUSDT`
+                    : "—";
+                  const maxSafeFmt = card.maxSafeAmountIn
+                    ? isSell
+                      ? `${(Number(card.maxSafeAmountIn) / 1e18).toFixed(6)} WHSK`
+                      : `${(Number(card.maxSafeAmountIn) / 1e6).toFixed(4)} tUSDT`
+                    : "—";
+                  const quoteFmt = card.quotedOut
+                    ? isSell
+                      ? `${(Number(card.quotedOut) / 1e6).toFixed(4)} tUSDT`
+                      : `${(Number(card.quotedOut) / 1e18).toFixed(6)} WHSK`
+                    : "—";
+                  const minOutFmt = card.minOut
+                    ? isSell
+                      ? `${(Number(card.minOut) / 1e6).toFixed(4)} tUSDT`
+                      : `${(Number(card.minOut) / 1e18).toFixed(6)} WHSK`
+                    : "—";
+                  const isNoTrade = card.decision === "NO_TRADE";
 
-                    <div className="grid grid-cols-2 gap-2 text-[11px] pt-0.5 font-mono">
-                      <div>
-                        <span className="text-on-surface-variant font-sans">Side / Size:</span>{" "}
-                        <span className="font-bold text-on-surface">
-                          {m.previewCard.side} {m.previewCard.amount?.value} {m.previewCard.amount?.unit}
+                  return (
+                    <div className="mt-3 p-3.5 rounded-xl bg-surface-container-lowest border border-outline-variant/50 shadow-soft text-on-surface text-xs space-y-2.5">
+                      <div className="flex items-center justify-between font-semibold border-b border-surface-container pb-2">
+                        <span className="text-primary flex items-center gap-1.5 font-headline">
+                          <ShieldCheck className="w-4 h-4" />
+                          <span>Order Pre-Flight Verification</span>
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border ${
+                              isNoTrade
+                                ? "bg-error-container text-on-error-container border-error/30"
+                                : card.decision === "EXECUTE_TRIMMED"
+                                ? "bg-tertiary-container text-on-tertiary-container border-tertiary/30"
+                                : "bg-secondary-container text-on-secondary-container border-primary/30"
+                            }`}
+                          >
+                            {card.decision || "PENDING"} {card.reasonCode ? `(${card.reasonCode})` : ""}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 text-[11px] pt-0.5 font-mono">
+                        <div>
+                          <span className="text-on-surface-variant font-sans">Side:</span>{" "}
+                          <span className="font-bold text-on-surface">{card.side}</span>
+                        </div>
+                        <div>
+                          <span className="text-on-surface-variant font-sans">Impact Budget:</span>{" "}
+                          <span className="font-bold text-on-surface">{card.impactBudgetBps} bps</span>
+                        </div>
+                        <div>
+                          <span className="text-on-surface-variant font-sans">Requested:</span>{" "}
+                          <span className="font-bold text-on-surface">{reqFmt}</span>
+                        </div>
+                        <div>
+                          <span className="text-on-surface-variant font-sans">Decided:</span>{" "}
+                          <span className={`font-bold ${isNoTrade ? "text-error" : "text-primary"}`}>{decFmt}</span>
+                        </div>
+                        <div>
+                          <span className="text-on-surface-variant font-sans">Impact (Req):</span>{" "}
+                          <span className="font-bold text-on-surface">{card.priceImpactBpsAtRequested ?? 0} bps</span>
+                        </div>
+                        <div>
+                          <span className="text-on-surface-variant font-sans">Impact (Decided):</span>{" "}
+                          <span className={`font-bold ${card.priceImpactBpsAtDecided <= card.impactBudgetBps ? "text-primary" : "text-error"}`}>
+                            {card.priceImpactBpsAtDecided ?? 0} bps
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-on-surface-variant font-sans">Max Safe:</span>{" "}
+                          <span className="font-bold text-on-surface">{maxSafeFmt}</span>
+                        </div>
+                        <div>
+                          <span className="text-on-surface-variant font-sans">Quoted Out:</span>{" "}
+                          <span className="font-bold text-on-surface">{quoteFmt}</span>
+                        </div>
+                        <div className="col-span-2 border-t border-surface-container/60 pt-1.5 flex items-center justify-between">
+                          <span className="text-on-surface-variant font-sans">Min Out Floor (Slippage):</span>
+                          <span className="font-bold text-on-surface">{minOutFmt}</span>
+                        </div>
+                      </div>
+
+                      {/* Button logic: NO_TRADE => NO confirm button */}
+                      {isNoTrade ? (
+                        <div className="mt-1 p-2 rounded-lg bg-error-container/30 border border-error/30 text-on-error-container text-[11px] font-sans flex items-center gap-1.5">
+                          <AlertTriangle className="w-3.5 h-3.5 text-error shrink-0" />
+                          <span>Order Refused by Fathom Risk Engine ({card.reasonCode || "RISK_BUDGET_EXCEEDED"}). Execution blocked.</span>
+                        </div>
+                      ) : (
+                        <div className="pt-1.5">
+                          <button
+                            type="button"
+                            onClick={() => m.previewId && onConfirmTrade(m.previewId)}
+                            className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-primary hover:bg-primary-container text-white font-semibold text-xs shadow-soft transition-all cursor-pointer"
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <span>Confirm & Execute on HSKSwap</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {/* On-Chain Execution / Refusal Receipt Card */}
+                {m.decision && (() => {
+                  const dec = m.decision;
+                  const isNoTrade = dec.decision === "NO_TRADE";
+                  const isTrimmed = dec.decision === "EXECUTE_TRIMMED";
+                  const headerTitle = isNoTrade
+                    ? "On-Chain Refusal Proof (TradeRejected)"
+                    : isTrimmed
+                    ? "On-Chain Trimmed Swap Receipt"
+                    : "On-Chain Swap Receipt";
+
+                  return (
+                    <div
+                      className={`mt-3 p-3.5 rounded-xl border shadow-soft text-on-surface text-xs space-y-2 font-mono ${
+                        isNoTrade
+                          ? "bg-error-container/20 border-error/30"
+                          : isTrimmed
+                          ? "bg-tertiary-container/25 border-tertiary/30"
+                          : "bg-secondary-container/40 border-primary/30"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between font-semibold border-b border-outline-variant/20 pb-2">
+                        <span className={`flex items-center gap-1.5 font-headline ${isNoTrade ? "text-error" : isTrimmed ? "text-tertiary" : "text-primary"}`}>
+                          {isNoTrade ? <AlertTriangle className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
+                          <span>{headerTitle}</span>
+                        </span>
+                        <span
+                          className={`text-[10px] px-2 py-0.5 rounded-md font-bold border ${
+                            isNoTrade
+                              ? "bg-error-container text-on-error-container border-error/30"
+                              : isTrimmed
+                              ? "bg-tertiary-container text-on-tertiary-container border-tertiary/30"
+                              : "bg-secondary-container text-on-secondary-container border-primary/30"
+                          }`}
+                        >
+                          {dec.decision}
                         </span>
                       </div>
-                      <div>
-                        <span className="text-on-surface-variant font-sans">Impact Budget:</span>{" "}
-                        <span className="font-bold text-on-surface">
-                          {m.previewCard.impactBudgetBps} bps
-                        </span>
+
+                      <div className="grid grid-cols-2 gap-2 text-[11px] pt-0.5">
+                        <div>
+                          <span className="text-on-surface-variant font-sans">Tx Hash:</span>{" "}
+                          {dec.txHash ? (
+                            <a
+                              href={`https://testnet-explorer.hskchain.net/tx/${dec.txHash}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-primary font-bold underline hover:opacity-80"
+                            >
+                              {dec.txHash.slice(0, 10)}...
+                            </a>
+                          ) : (
+                            <span className="text-on-surface-variant italic">Refused (Local)</span>
+                          )}
+                        </div>
+                        <div>
+                          <span className="text-on-surface-variant font-sans">{isNoTrade ? "Reason Code:" : "Realized Impact:"}</span>{" "}
+                          <span className="font-bold text-on-surface">
+                            {isNoTrade ? dec.reasonCode : `${dec.priceImpactBpsAtDecided} bps`}
+                          </span>
+                        </div>
                       </div>
                     </div>
-
-                    {/* One-click Confirm Button */}
-                    <div className="pt-1.5">
-                      <button
-                        type="button"
-                        onClick={() => m.previewId && onConfirmTrade(m.previewId)}
-                        className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-primary hover:bg-primary-container text-white font-semibold text-xs shadow-soft transition-all cursor-pointer"
-                      >
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        <span>Confirm & Execute on HSKSwap</span>
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* On-Chain Execution Receipt Card (Shown when trade executes autonomously or upon confirmation) */}
-                {m.decision && (
-                  <div className="mt-3 p-3.5 rounded-xl bg-secondary-container/40 border border-primary/30 shadow-soft text-on-surface text-xs space-y-2 font-mono">
-                    <div className="flex items-center justify-between font-semibold border-b border-primary/15 pb-2">
-                      <span className="text-primary flex items-center gap-1.5 font-headline">
-                        <CheckCircle2 className="w-4 h-4" />
-                        <span>On-Chain Execution Receipt</span>
-                      </span>
-                      <span className="text-[10px] px-2 py-0.5 rounded-md bg-surface-container-lowest text-primary font-bold border border-primary/20">
-                        {m.decision.decision}
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2 text-[11px] pt-0.5">
-                      <div>
-                        <span className="text-on-surface-variant font-sans">Tx Hash:</span>{" "}
-                        <span className="text-primary font-bold">
-                          {m.decision.txHash ? `${m.decision.txHash.slice(0, 10)}...` : "Confirmed"}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-on-surface-variant font-sans">Realized Impact:</span>{" "}
-                        <span className="font-bold text-on-surface">
-                          {m.decision.priceImpactBpsAtDecided} bps
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                )}
+                  );
+                })()}
               </div>
             </div>
           );

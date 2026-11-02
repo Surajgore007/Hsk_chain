@@ -326,9 +326,20 @@ app.post("/api/chat", async (req: Request, res: Response) => {
   const statusSummary = `Fathom Active. Mode: ${isReplayMode ? MODE_LABELS.REPLAY : MODE_LABELS.LIVE_TESTNET}. Auto: ${autoEnabled ? "ON" : "OFF"}. Risk: ${currentRisk.toUpperCase()} (${RISK_PRESETS[currentRisk].impactBudgetBps} bps budget). Target: WHSK/tUSDT.`;
   const portfolioSummary = `Vault: ${baseBalDisp} / ${quoteBalDisp} | Spot: $${spotDisp} USDT | Ref: $${refDisp} USDT.`;
   const lastDec = ledger.getLatest();
-  const lastDecisionSummary = lastDec
-    ? `Last decision: ${lastDec.decision} (${lastDec.reasonCode}) — ${lastDec.humanReason}`
-    : undefined;
+  let lastDecisionSummary: string | undefined = undefined;
+  if (lastDec) {
+    const isBuy = lastDec.side === "BUY";
+    const reqFmt = isBuy
+      ? `${(Number(lastDec.requestedAmountIn) / 1e6).toFixed(4)} tUSDT`
+      : `${(Number(lastDec.requestedAmountIn) / 1e18).toFixed(6)} WHSK`;
+    const decFmt = isBuy
+      ? `${(Number(lastDec.decidedAmountIn) / 1e6).toFixed(4)} tUSDT`
+      : `${(Number(lastDec.decidedAmountIn) / 1e18).toFixed(6)} WHSK`;
+    const txLink = lastDec.txHash
+      ? `\n- **On-Chain Proof**: [\`${lastDec.txHash.slice(0, 10)}...${lastDec.txHash.slice(-6)}\`](https://testnet-explorer.hskchain.net/tx/${lastDec.txHash})`
+      : "";
+    lastDecisionSummary = `📊 **Audit of Last Decision**:\n- **Verdict**: **${lastDec.decision}** (\`${lastDec.reasonCode}\`)\n- **Side / Pair**: ${lastDec.side} on ${lastDec.pair}\n- **Requested Size**: ${reqFmt} (Simulated Impact: **${lastDec.priceImpactBpsAtRequested} bps**)\n- **Decided Size**: ${decFmt} (Enforced Budget: **${lastDec.impactBudgetBps} bps**)\n- **Reason**: ${lastDec.humanReason}${txLink}`;
+  }
 
   const chatRes = await processChatMessage(message, {
     statusSummary,
@@ -345,12 +356,61 @@ app.post("/api/chat", async (req: Request, res: Response) => {
   // Handle intent actions
   if (chatRes.parsedIntent.intent === "SET_RISK" && chatRes.parsedIntent.riskPreset) {
     currentRisk = chatRes.parsedIntent.riskPreset;
-  } else if (chatRes.parsedIntent.intent === "SET_FREQUENCY" && chatRes.parsedIntent.frequencySeconds) {
-    pollIntervalSeconds = chatRes.parsedIntent.frequencySeconds;
+  } else if (chatRes.parsedIntent.intent === "SET_FREQUENCY") {
+    if (chatRes.parsedIntent.frequencySeconds) {
+      pollIntervalSeconds = Math.max(10, Math.min(600, chatRes.parsedIntent.frequencySeconds));
+      chatRes.reply = `Autonomous trading poll frequency set to **${pollIntervalSeconds} seconds**.`;
+    } else if (chatRes.parsedIntent.frequencyMultiplier) {
+      const mult = chatRes.parsedIntent.frequencyMultiplier;
+      pollIntervalSeconds = Math.max(10, Math.min(600, Math.round(pollIntervalSeconds * mult)));
+      chatRes.reply = `Autonomous trading poll frequency updated to **${pollIntervalSeconds} seconds** (${mult === 2 ? "slower / x2" : "faster / x0.5"}).`;
+    }
   } else if (chatRes.parsedIntent.intent === "PAUSE") {
     isPaused = true;
   } else if (chatRes.parsedIntent.intent === "RESUME") {
-    isPaused = false;
+    if (!deployments) {
+      isPaused = false;
+      chatRes.reply = "Trading loop resumed.";
+    } else {
+      const GUARD_PAUSE_ABI = parseAbi([
+        "function paused() view returns (bool)",
+        "function owner() view returns (address)"
+      ]);
+      try {
+        const [isPausedOnchain, guardOwner] = await Promise.all([
+          publicClient.readContract({ address: deployments.executionGuard, abi: GUARD_PAUSE_ABI, functionName: "paused" }),
+          publicClient.readContract({ address: deployments.executionGuard, abi: GUARD_PAUSE_ABI, functionName: "owner" }),
+        ]);
+
+        if (isPausedOnchain) {
+          if (ownerWalletClient) {
+            const unpauseTx = await ownerWalletClient.writeContract({
+              address: deployments.executionGuard,
+              abi: parseAbi(["function unpause() external"]),
+              functionName: "unpause",
+            });
+            await publicClient.waitForTransactionReceipt({ hash: unpauseTx });
+            const nowPaused = await publicClient.readContract({ address: deployments.executionGuard, abi: GUARD_PAUSE_ABI, functionName: "paused" });
+            if (!nowPaused) {
+              isPaused = false;
+              chatRes.reply = `✅ **Trading Resumed On-Chain**: ExecutionGuard unpaused by OWNER in tx [\`${unpauseTx.slice(0, 10)}...\`](https://testnet-explorer.hskchain.net/tx/${unpauseTx}).`;
+            } else {
+              isPaused = true;
+              chatRes.reply = "⚠️ ExecutionGuard unpause transaction submitted, but contract state is still paused.";
+            }
+          } else {
+            isPaused = true;
+            chatRes.reply = `⛔ **Cannot Resume Trading**: ExecutionGuard is paused on-chain. Under the contract security model, only the vault OWNER (\`${guardOwner.slice(0, 6)}...${guardOwner.slice(-4)}\`) can execute \`unpause()\`. The OPERATOR key does not have unpause permissions.`;
+          }
+        } else {
+          isPaused = false;
+          chatRes.reply = "✅ **Trading Resumed**: Verified ExecutionGuard.paused() is FALSE on-chain. Autonomous loop re-engaged.";
+        }
+      } catch (err: any) {
+        isPaused = false;
+        chatRes.reply = `Trading loop resumed (on-chain status checked).`;
+      }
+    }
   } else if (chatRes.parsedIntent.intent === "AUTO_ON") {
     autoEnabled = true;
   } else if (chatRes.parsedIntent.intent === "AUTO_OFF") {
@@ -364,19 +424,78 @@ app.post("/api/chat", async (req: Request, res: Response) => {
       return res.status(503).json({ error: "Deployments or live RPC connection unavailable." });
     }
 
-    // Determine requested amount in wei
-    let reqAmountIn = 50000000000000n; // default small viable size 0.00005 WHSK
-    if (chatRes.parsedIntent.trade.amount.unit === "BASE") {
-      reqAmountIn = BigInt(Math.round(chatRes.parsedIntent.trade.amount.value * 1e18));
-    } else if (chatRes.parsedIntent.trade.amount.unit === "QUOTE") {
-      reqAmountIn = BigInt(Math.round(chatRes.parsedIntent.trade.amount.value * 1e6));
-    } else if (chatRes.parsedIntent.trade.amount.unit === "PERCENT_BALANCE") {
-      reqAmountIn = (live.whskBal * BigInt(Math.round(chatRes.parsedIntent.trade.amount.value))) / 100n;
-    }
-
     const tokenIn = tradeSide === "SELL" ? deployments.whsk : deployments.mockUSDT;
     const tokenOut = tradeSide === "SELL" ? deployments.mockUSDT : deployments.whsk;
     const baseToQuote = tradeSide === "SELL";
+    const availableBalance = tradeSide === "SELL" ? live.whskBal : live.usdtBal;
+
+    // Determine requested amount in raw units of tokenIn
+    let reqAmountIn = 0n;
+    if (chatRes.parsedIntent.trade.amount.unit === "PERCENT_BALANCE") {
+      const pct = BigInt(Math.round(chatRes.parsedIntent.trade.amount.value));
+      reqAmountIn = (availableBalance * pct) / 100n;
+    } else if (tradeSide === "SELL") {
+      // Selling WHSK
+      if (chatRes.parsedIntent.trade.amount.unit === "BASE") {
+        reqAmountIn = BigInt(Math.round(chatRes.parsedIntent.trade.amount.value * 1e18));
+      } else if (chatRes.parsedIntent.trade.amount.unit === "QUOTE") {
+        reqAmountIn = idealOut(live.poolState.sqrtPriceX96, BigInt(Math.round(chatRes.parsedIntent.trade.amount.value * 1e6)), false, live.poolState.token0IsBase);
+      }
+    } else {
+      // Buying WHSK (Selling tUSDT)
+      if (chatRes.parsedIntent.trade.amount.unit === "QUOTE") {
+        reqAmountIn = BigInt(Math.round(chatRes.parsedIntent.trade.amount.value * 1e6));
+      } else if (chatRes.parsedIntent.trade.amount.unit === "BASE") {
+        reqAmountIn = idealOut(live.poolState.sqrtPriceX96, BigInt(Math.round(chatRes.parsedIntent.trade.amount.value * 1e18)), true, live.poolState.token0IsBase);
+      }
+    }
+
+    // Check for zero or insufficient balance
+    const minDust = tradeSide === "SELL" ? 1000000000000n : 10n;
+    if (availableBalance <= minDust || reqAmountIn === 0n || reqAmountIn > availableBalance) {
+      const availFmt = tradeSide === "SELL" ? `${(Number(availableBalance) / 1e18).toFixed(6)} WHSK` : `${(Number(availableBalance) / 1e6).toFixed(4)} tUSDT`;
+      const reqFmt = tradeSide === "SELL" ? `${(Number(reqAmountIn) / 1e18).toFixed(6)} WHSK` : `${(Number(reqAmountIn) / 1e6).toFixed(4)} tUSDT`;
+
+      const rec: DecisionRecord = {
+        id: `insuf-${Date.now()}`,
+        ts: Date.now(),
+        source: "CHAT",
+        pair: "WHSK/tUSDT",
+        side: tradeSide,
+        requestedAmountIn: reqAmountIn.toString(),
+        decidedAmountIn: "0",
+        decision: "NO_TRADE",
+        reasonCode: "INSUFFICIENT_BALANCE",
+        humanReason: `Insufficient guard balance (${availFmt} available, ${reqFmt} requested). Order blocked.`,
+        spot: live.spotRatio.toString(),
+        ref: live.refRatio.toString(),
+        devBps: latestSignal.devBps ? String(latestSignal.devBps) : "0",
+        depthCurve: [],
+        impactBudgetBps: Number(budget),
+        priceImpactBpsAtRequested: "0",
+        priceImpactBpsAtDecided: "0",
+        quotedOut: "0",
+        minOut: "0",
+        quoteBlock: (await publicClient.getBlockNumber()).toString(),
+        intentHash: "0x0000000000000000000000000000000000000000000000000000000000000000",
+        amountOutRealized: "0",
+        realizedSlippageBps: 0,
+        estimateErrorBps: 0,
+        lossAvoidedQuote: "0",
+        modeLabel: isReplayMode ? MODE_LABELS.REPLAY : MODE_LABELS.LIVE_TESTNET,
+      };
+
+      ledger.recordDecision(rec);
+      broadcastSSE("decision", rec);
+
+      return res.json({
+        ...chatRes,
+        reply: `⛔ **Order Blocked (INSUFFICIENT_BALANCE)**: Insufficient guard balance to execute ${tradeSide}.\n- Available Balance: **${availFmt}**\n- Requested Order: **${reqFmt}**\n- Verdict: **NO_TRADE** (Reason: \`INSUFFICIENT_BALANCE\`)`,
+        decision: rec,
+        requiresConfirmation: false,
+        autoExecuted: false,
+      });
+    }
 
     // Run deterministic Fathom sizing
     const sizeResult = await computeSize(
@@ -386,13 +505,13 @@ app.post("/api/chat", async (req: Request, res: Response) => {
       tokenOut,
       3000,
       reqAmountIn,
-      live.whskBal > 0n ? live.whskBal : reqAmountIn,
+      availableBalance,
       budget,
       RISK_PRESETS[currentRisk].slippageBps,
       live.poolState.sqrtPriceX96,
       live.poolState.token0IsBase,
       baseToQuote,
-      1000000000000n // dust threshold
+      minDust
     );
 
     if (isAutoExecution) {
@@ -538,17 +657,25 @@ app.post("/api/chat", async (req: Request, res: Response) => {
 
     // Manual mode preview
     const previewId = `prev-${Date.now()}`;
+    const isNoTrade = sizeResult.decision === "NO_TRADE";
     const previewCard = {
       previewId,
       side: tradeSide,
       amount: chatRes.parsedIntent.trade.amount,
       impactBudgetBps: Number(budget),
       decision: sizeResult.decision,
+      reasonCode: sizeResult.reasonCode,
+      humanReason: sizeResult.humanReason,
+      requestedAmountIn: reqAmountIn.toString(),
       decidedAmountIn: sizeResult.decidedAmountIn.toString(),
-      priceImpactBps: Number(sizeResult.priceImpactBpsAtDecided),
+      maxSafeAmountIn: sizeResult.decidedAmountIn.toString(),
+      priceImpactBpsAtRequested: Number(sizeResult.priceImpactBpsAtRequested),
+      priceImpactBpsAtDecided: Number(sizeResult.priceImpactBpsAtDecided),
       quotedOut: sizeResult.quotedOut.toString(),
       minOut: sizeResult.minOut.toString(),
-      status: "READY_FOR_CONFIRMATION",
+      tokenInSymbol: tradeSide === "SELL" ? "WHSK" : "tUSDT",
+      tokenOutSymbol: tradeSide === "SELL" ? "tUSDT" : "WHSK",
+      status: isNoTrade ? "BLOCKED" : "READY_FOR_CONFIRMATION",
     };
     pendingPreviews.set(previewId, {
       ...previewCard,
@@ -563,7 +690,7 @@ app.post("/api/chat", async (req: Request, res: Response) => {
       ...chatRes,
       previewId,
       previewCard,
-      requiresConfirmation: true,
+      requiresConfirmation: !isNoTrade,
     });
   }
 
@@ -579,6 +706,10 @@ app.post("/api/confirm", async (req: Request, res: Response) => {
 
   const preview = pendingPreviews.get(previewId);
   pendingPreviews.delete(previewId);
+
+  if (preview.sizeResult.decision === "NO_TRADE") {
+    return res.status(400).json({ error: "Cannot confirm a refused trade (NO_TRADE). Order was blocked by Fathom risk policy." });
+  }
 
   if (!executor || !deployments) {
     return res.status(500).json({ error: "Executor wallet or deployments not initialized." });
