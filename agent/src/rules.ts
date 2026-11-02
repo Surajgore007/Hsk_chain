@@ -170,10 +170,18 @@ export function parseWithRules(input: string): ParsedIntent {
   }
   if (
     lower.includes("why did you refuse") ||
-    lower.includes("explain last") ||
-    lower.includes("why was it trimmed") ||
+    lower.includes("why refuse") ||
+    lower.includes("why was that refused") ||
+    lower.includes("why was it refused") ||
     lower.includes("why did you reject") ||
+    lower.includes("why reject") ||
+    lower.includes("why was that rejected") ||
+    lower.includes("why was it rejected") ||
+    lower.includes("why was it trimmed") ||
+    lower.includes("why trimmed") ||
+    lower.includes("explain last") ||
     lower.includes("what happened with the last trade") ||
+    /\bwhy\b.*(refus|reject|trim|block|fail)/i.test(lower) ||
     lower === "explain"
   ) {
     return { intent: "EXPLAIN_LAST", source: "RULES" };
@@ -196,18 +204,15 @@ export function parseWithRules(input: string): ParsedIntent {
   }
 
   // 8c. Target Asset Switch
-  const assetMatch = lower.match(/(?:switch\s+to\s+(?:pair\s+|asset\s+)?|set\s+asset\s+|trade\s+pair\s+)([a-z0-9/_-]+)/i);
+  const assetMatch = lower.match(/(?:switch\s+to|set\s+asset|pair|trade\s+pair)\s+([a-z0-9/_-]+)/i);
   if (assetMatch) {
-    const candidate = assetMatch[1].toLowerCase();
-    const isRiskPreset = ["balanced", "conservative", "cautious", "aggressive", "normal"].includes(candidate);
-    if (!isRiskPreset) {
-      let rawPair = candidate.toUpperCase();
-      if (rawPair.includes("ETH")) rawPair = "tWETH/tUSDT";
-      else if (rawPair.includes("BTC")) rawPair = "tWBTC/tUSDT";
-      else if (rawPair.includes("HSK")) rawPair = "WHSK/tUSDT";
-      if (rawPair.includes("/") || ["TWETH/TUSDT", "TWBTC/TUSDT", "WHSK/TUSDT"].includes(rawPair)) {
-        return { intent: "SET_ASSET", assetPair: rawPair, source: "RULES" };
-      }
+    const rawPair = assetMatch[1].toUpperCase();
+    if (rawPair.includes("ETH")) {
+      return { intent: "SET_ASSET", assetPair: "tWETH/tUSDT", source: "RULES" };
+    } else if (rawPair.includes("BTC")) {
+      return { intent: "SET_ASSET", assetPair: "tWBTC/tUSDT", source: "RULES" };
+    } else if (rawPair.includes("HSK")) {
+      return { intent: "SET_ASSET", assetPair: "WHSK/tUSDT", source: "RULES" };
     }
   }
 

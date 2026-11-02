@@ -33,6 +33,10 @@ describe("Chat Controller & Rules Fallback Parser", () => {
 
   it("correctly parses EXPLAIN_LAST", () => {
     expect(parseWithRules("Why did you refuse the last trade?").intent).toBe("EXPLAIN_LAST");
+    expect(parseWithRules("why did you refuse?").intent).toBe("EXPLAIN_LAST");
+    expect(parseWithRules("why refuse").intent).toBe("EXPLAIN_LAST");
+    expect(parseWithRules("why was that rejected?").intent).toBe("EXPLAIN_LAST");
+    expect(parseWithRules("why hold?").intent).toBe("WHY_HOLD");
   });
 
   it("correctly parses TRADE with percentage and max impact", () => {

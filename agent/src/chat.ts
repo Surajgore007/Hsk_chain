@@ -221,8 +221,8 @@ OUTPUT JSON ONLY matching one of these intent types:
 3. SHOW_PNL: {"intent": "SHOW_PNL"}
 4. SHOW_DEPTH: {"intent": "SHOW_DEPTH"}
 5. SHOW_SIGNALS: {"intent": "SHOW_SIGNALS"}
-6. EXPLAIN_LAST: {"intent": "EXPLAIN_LAST"}
-7. WHY_HOLD: {"intent": "WHY_HOLD"}
+6. EXPLAIN_LAST: {"intent": "EXPLAIN_LAST"} (Use for questions like "why did you refuse?", "why refuse?", "why was that rejected?", "why trimmed?", "explain last trade", "what happened to my order?")
+7. WHY_HOLD: {"intent": "WHY_HOLD"} (Use for questions like "why are you holding?", "why no trades?", "why hold?")
 8. TRADE: {"intent": "TRADE", "trade": {"side": "BUY"|"SELL", "amount": {"value": number, "unit": "BASE"|"QUOTE"|"PERCENT_BALANCE"}, "maxImpactBps": number optional}}
 9. SET_RISK: {"intent": "SET_RISK", "riskPreset": "conservative"|"balanced"|"aggressive" OR "impactBudgetBps": number}
 10. SET_SIZE: {"intent": "SET_SIZE", "percentOfBalance": number (1-50)}
@@ -335,12 +335,15 @@ export async function processChatMessage(
   let badge: "LLM" | "rules" = "rules";
 
   parsed = await parseWithLLM(message);
-  if (parsed) {
+  if (parsed && parsed.intent !== "UNKNOWN") {
     badge = "LLM";
   } else {
-    // 3. Fallback to deterministic rules
-    parsed = parseWithRules(message);
-    badge = "rules";
+    // 3. Fallback to deterministic rules if LLM is unavailable or returned UNKNOWN
+    const rulesParsed = parseWithRules(message);
+    if (rulesParsed.intent !== "UNKNOWN" || !parsed) {
+      parsed = rulesParsed;
+      badge = "rules";
+    }
   }
 
   // 4. Deterministic handler responses

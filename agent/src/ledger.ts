@@ -82,7 +82,7 @@ export interface ScorecardMetrics {
   trades: Array<{
     id: string;
     ts: number;
-    decision: DecisionType;
+    decision: DecisionType | "HOLD";
     predictedSlippageBps: number;
     realizedSlippageBps: number;
     estimateErrorBps: number;
