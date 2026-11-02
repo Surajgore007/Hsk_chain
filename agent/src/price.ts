@@ -113,7 +113,8 @@ export function priceImpactBps(idealOutAmt: bigint, quotedOut: bigint, feeBps = 
  *   minOut = quotedOut * (10000 - slippageBps) / 10000
  */
 export function minOutFromSlippage(quotedOut: bigint, slippageBps: bigint): bigint {
-  return mulDiv(quotedOut, 10_000n - slippageBps, 10_000n);
+  const min = mulDiv(quotedOut, 10_000n - slippageBps, 10_000n);
+  return min === 0n && quotedOut > 0n ? 1n : min;
 }
 
 /**
