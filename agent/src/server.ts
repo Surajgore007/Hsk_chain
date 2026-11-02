@@ -271,6 +271,26 @@ const WHSK_ABI = parseAbi([
 
 // ─── API Endpoints ──────────────────────────────────────────────────────────
 
+// GET / — Friendly root service status
+app.get("/", (req: Request, res: Response) => {
+  res.json({
+    service: "Fathom Autonomous Trading Agent API",
+    status: "online",
+    network: "HSK Testnet (Chain ID 133)",
+    mode: isReplayMode ? MODE_LABELS.REPLAY : MODE_LABELS.LIVE_TESTNET,
+    endpoints: {
+      health: "/api/health",
+      state: "/api/state",
+      portfolio: "/api/portfolio",
+      decisions: "/api/decisions",
+      scorecard: "/api/scorecard",
+      depth: "/api/depth",
+      chat: "POST /api/chat",
+      confirm: "POST /api/confirm",
+    },
+  });
+});
+
 // GET /api/health — Fast synchronous health check for Render / monitoring (no RPC calls)
 app.get("/api/health", (req: Request, res: Response) => {
   res.json({
