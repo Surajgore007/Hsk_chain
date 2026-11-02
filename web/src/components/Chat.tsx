@@ -219,30 +219,25 @@ export const Chat: React.FC<Props> = ({
                 {m.previewCard && (() => {
                   const card = m.previewCard as any;
                   const isSell = card.side === "SELL";
+                  const inSym = card.tokenInSymbol || (isSell ? "BASE" : "tUSDT");
+                  const outSym = card.tokenOutSymbol || (isSell ? "tUSDT" : "BASE");
+                  const inDecimals = inSym === "tWBTC" ? 8 : inSym === "tUSDT" ? 6 : 18;
+                  const outDecimals = outSym === "tWBTC" ? 8 : outSym === "tUSDT" ? 6 : 18;
+
                   const reqFmt = card.requestedAmountIn
-                    ? isSell
-                      ? `${(Number(card.requestedAmountIn) / 1e18).toFixed(6)} WHSK`
-                      : `${(Number(card.requestedAmountIn) / 1e6).toFixed(4)} tUSDT`
+                    ? `${(Number(card.requestedAmountIn) / Math.pow(10, inDecimals)).toFixed(inDecimals === 6 ? 4 : 6)} ${inSym}`
                     : `${card.amount?.value} ${card.amount?.unit}`;
                   const decFmt = card.decidedAmountIn
-                    ? isSell
-                      ? `${(Number(card.decidedAmountIn) / 1e18).toFixed(6)} WHSK`
-                      : `${(Number(card.decidedAmountIn) / 1e6).toFixed(4)} tUSDT`
+                    ? `${(Number(card.decidedAmountIn) / Math.pow(10, inDecimals)).toFixed(inDecimals === 6 ? 4 : 6)} ${inSym}`
                     : "—";
                   const maxSafeFmt = card.maxSafeAmountIn
-                    ? isSell
-                      ? `${(Number(card.maxSafeAmountIn) / 1e18).toFixed(6)} WHSK`
-                      : `${(Number(card.maxSafeAmountIn) / 1e6).toFixed(4)} tUSDT`
+                    ? `${(Number(card.maxSafeAmountIn) / Math.pow(10, inDecimals)).toFixed(inDecimals === 6 ? 4 : 6)} ${inSym}`
                     : "—";
                   const quoteFmt = card.quotedOut
-                    ? isSell
-                      ? `${(Number(card.quotedOut) / 1e6).toFixed(4)} tUSDT`
-                      : `${(Number(card.quotedOut) / 1e18).toFixed(6)} WHSK`
+                    ? `${(Number(card.quotedOut) / Math.pow(10, outDecimals)).toFixed(outDecimals === 6 ? 4 : 6)} ${outSym}`
                     : "—";
                   const minOutFmt = card.minOut
-                    ? isSell
-                      ? `${(Number(card.minOut) / 1e6).toFixed(4)} tUSDT`
-                      : `${(Number(card.minOut) / 1e18).toFixed(6)} WHSK`
+                    ? `${(Number(card.minOut) / Math.pow(10, outDecimals)).toFixed(outDecimals === 6 ? 4 : 6)} ${outSym}`
                     : "—";
                   const isNoTrade = card.decision === "NO_TRADE";
 

@@ -121,6 +121,7 @@ export function generateThoughtProcess(
     refPriceDisplay?: number;
     baseBal?: string;
     quoteBal?: string;
+    activePair?: string;
   }
 ): ThoughtStep[] {
   const steps: ThoughtStep[] = [];
@@ -138,9 +139,10 @@ export function generateThoughtProcess(
     const poolShort = ctx?.poolAddress ? `${ctx.poolAddress.slice(0, 6)}...${ctx.poolAddress.slice(-4)}` : "0xe0f4...dfaf";
     const spotStr = ctx?.spotPriceDisplay !== undefined ? `${ctx.spotPriceDisplay.toFixed(4)} USDT` : "live spot";
     const refStr = ctx?.refPriceDisplay !== undefined ? `${ctx.refPriceDisplay.toFixed(4)} USDT` : "mainnet ref";
+    const pairLabel = ctx?.activePair || "WHSK/tUSDT";
     steps.push({
       title: "2. Pool Liquidity & State Inspection",
-      detail: `Querying HSK Testnet pool ${poolShort} (WHSK/tUSDT). Reading slot0 (${spotStr}) vs HSK Mainnet reference price (${refStr}).`,
+      detail: `Querying HSK Testnet pool ${poolShort} (${pairLabel}). Reading slot0 (${spotStr}) vs reference price (${refStr}).`,
       status: "done",
     });
 
