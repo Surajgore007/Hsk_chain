@@ -1,0 +1,32 @@
+{
+  "chainId": 133,
+  "whsk": "0xCA8aAceEC5Db1e91B9Ed3a344bA026c4a2B3ebF6",
+  "mockUSDT": "0x721e7fa9fb2446be07ab4a708254f4adcb70e4cf",
+  "router": "0xa6914E66690c6794244B5f66a09eAEbf66254237",
+  "factory": "0x2dC2c21D1049F786C535bF9d45F999dB5474f3A0",
+  "positionManager": "0x73dEc6bfa6751509b08480bd97f54b874E3b20e8",
+  "mainnetPool": "0x4ff515761864e7838b0adb8b5b2b8b7a068905dc",
+  "pool": "0xe0f494ef52eacebb42cdb11a03a2e9e43fbfdfaf",
+  "quoter": "0x5a850f9b26e01c0a10d0b3104e15f2bcd4889070",
+  "executionGuard": "0x6b0800d93a0fae5a5d11577be69c74c63e0b5b35",
+  "owner": "0x1FB227f1e5054f0F6Ea45ED58Cbac0C0d739d46c",
+  "operator": "0xf66Efa7c7Df1D6AD09bA29AaAaD40A8B79FD95De",
+  "mover": "0x847A7Cb9B6A090Fc847d31fcf0CEec9867A17D74",
+  "deployBlock": 35216580,
+  "deployedAt": "2026-11-02T11:43:35.616Z",
+  "deployTxHashes": {
+    "mockUSDT": "0x6ff37f0327dafcefb5cc11401dfa9e1ac023d35c2decafab407c4733963b4c8c",
+    "quoter": "0xa2effd49b5ad6364f8d5164ae6a7e5d68d01e4dcf38c4e9508aeba3077915b79",
+    "createAndInitializePool": "0x0acd86d38ffe04c117cee7bd8a2c52b02dde9b134b56d551322788e679454668",
+    "cardinality": "0x4173f2c44db45c150d907111eb75d86c247cd4a80ccc9137c7d3fca7e8d3aaad",
+    "wrapWHSK": "0x47a67cca3608c23a9928dbb326101f48b892f5e267760de8d89d0aa82a1ae4f6",
+    "mintMockUSDT": "0x87af27a81437db505a7b5042f3211c106493d4d5ec857903514a96d24cf9911f",
+    "mintLiquidity": "0xb0172fd93afa7e3615fc2ad2b5cd51e96437d078781cd4c5796296fbd98155bf",
+    "executionGuard": "0x864d47ccefc82a48868d63cc07a04f773b2f339650f7444e6db09b073c415182",
+    "fundOperator": "0x289219abb66e08a004036cce7dc35729f3a3a915f105288d1d8d79f3b033ae97",
+    "fundMover": "0x8f0836eb82c94229142243a2c703af3247028df58cc399fab757de7d04dd33d1",
+    "fundGuardWhsk": "0x007850d21c5f81ad554a23c850e97a76b6d0b38563e97f93cb4bcd65e1eea32d",
+    "fundGuardUsdt": "0xa03d0cb5d3543039f9c11dfd3a0415173f7c61ef84c294e1ff5af4cd9ecd2943",
+    "testSwap": "0x5cc0f2c35669e27667f1cb495160a2aadca3d1e35f742f86284da89e7d38733a"
+  }
+}

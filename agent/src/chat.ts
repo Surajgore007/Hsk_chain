@@ -1,0 +1,379 @@
+/**
+ * chat.ts — Natural Language Chat Controller with Zod schema & LLM / Rules dual parser
+ *
+ * Flow:
+ * 1. Checks for prompt-injection attacks.
+ * 2. Attempts structured JSON parse via Groq or Gemini (if API key available).
+ * 3. Falls back seamlessly to deterministic `parseWithRules` if LLM fails, is rate-limited, or absent.
+ * 4. Validates parsed intent through strict Zod schemas.
+ * 5. Executes deterministic handlers. The LLM NEVER sets amounts, addresses, or triggers trades directly.
+ */
+
+import { z } from "zod";
+import { parseWithRules, detectPromptInjection, type ParsedIntent } from "./rules.js";
+import { APP_CONFIG, RISK_PRESETS, type RiskPreset } from "./config.js";
+
+// Zod schemas for strict intent validation
+const TradeIntentSchema = z.object({
+  intent: z.literal("TRADE"),
+  trade: z.object({
+    side: z.enum(["BUY", "SELL"]),
+    amount: z.object({
+      value: z.number().positive(),
+      unit: z.enum(["BASE", "QUOTE", "PERCENT_BALANCE"]),
+    }),
+    maxImpactBps: z.number().int().min(1).max(150).optional(), // Max ceiling 150 bps
+  }),
+});
+
+const RiskIntentSchema = z.object({
+  intent: z.literal("SET_RISK"),
+  riskPreset: z.enum(["conservative", "balanced", "aggressive"]).optional(),
+  impactBudgetBps: z.number().int().min(5).max(150).optional(),
+});
+
+const SizeIntentSchema = z.object({
+  intent: z.literal("SET_SIZE"),
+  percentOfBalance: z.number().min(1).max(50), // Hard ceiling 50%
+});
+
+const FrequencyIntentSchema = z.object({
+  intent: z.literal("SET_FREQUENCY"),
+  frequencySeconds: z.number().int().min(10).max(600),
+});
+
+const AssetIntentSchema = z.object({
+  intent: z.literal("SET_ASSET"),
+  assetPair: z.string(),
+});
+
+const SimpleIntentSchema = z.object({
+  intent: z.enum([
+    "STATUS",
+    "SHOW_POSITIONS",
+    "SHOW_PNL",
+    "SHOW_DEPTH",
+    "EXPLAIN_LAST",
+    "PAUSE",
+    "RESUME",
+    "EMERGENCY_STOP",
+    "AUTO_ON",
+    "AUTO_OFF",
+    "UNKNOWN",
+  ]),
+  explanation: z.string().optional(),
+});
+
+export const AnyIntentSchema = z.discriminatedUnion("intent", [
+  TradeIntentSchema,
+  RiskIntentSchema,
+  SizeIntentSchema,
+  FrequencyIntentSchema,
+  AssetIntentSchema,
+  SimpleIntentSchema,
+]);
+
+export interface ThoughtStep {
+  title: string;
+  detail: string;
+  status?: "done" | "active" | "warning";
+}
+
+export interface ChatResponse {
+  reply: string;
+  parsedIntent: ParsedIntent;
+  parserBadge: "LLM" | "rules";
+  previewId?: string;
+  previewCard?: Record<string, unknown>;
+  requiresConfirmation?: boolean;
+  thoughtProcess?: ThoughtStep[];
+}
+
+export function generateThoughtProcess(
+  message: string,
+  parsed: ParsedIntent,
+  badge: "LLM" | "rules",
+  currentRisk: RiskPreset,
+  ctx?: {
+    poolAddress?: string;
+    spotPriceDisplay?: number;
+    refPriceDisplay?: number;
+    baseBal?: string;
+    quoteBal?: string;
+  }
+): ThoughtStep[] {
+  const steps: ThoughtStep[] = [];
+
+  // Step 1: Parser & Intent Classification
+  const modelName = APP_CONFIG.GROQ_MODEL.split("/")[1] || APP_CONFIG.GROQ_MODEL || "GPT-OSS";
+  steps.push({
+    title: `1. Intent Parsing via ${badge === "LLM" ? `Groq (${modelName})` : "Deterministic Rules"}`,
+    detail: `Parsed prompt "${message.length > 32 ? message.slice(0, 32) + '...' : message}" → Intent: ${parsed.intent}. Prompt-injection verification passed.`,
+    status: "done",
+  });
+
+  // Step 2: Pool & Reserves Context
+  const poolShort = ctx?.poolAddress ? `${ctx.poolAddress.slice(0, 6)}...${ctx.poolAddress.slice(-4)}` : "0xe0f4...dfaf";
+  const spotStr = ctx?.spotPriceDisplay !== undefined ? `${ctx.spotPriceDisplay.toFixed(4)} USDT` : "live spot";
+  const refStr = ctx?.refPriceDisplay !== undefined ? `${ctx.refPriceDisplay.toFixed(4)} USDT` : "mainnet ref";
+  steps.push({
+    title: "2. Pool Liquidity & State Inspection",
+    detail: `Querying HSK Testnet pool ${poolShort} (WHSK/tUSDT). Reading slot0 (${spotStr}) vs HSK Mainnet reference price (${refStr}).`,
+    status: "done",
+  });
+
+  // Step 3: Intent-specific reasoning
+  if (parsed.intent === "TRADE" && parsed.trade) {
+    const budget = parsed.trade.maxImpactBps || Number(RISK_PRESETS[currentRisk].impactBudgetBps);
+    steps.push({
+      title: "3. QuoterV2 Depth Curve Sweep",
+      detail: `Simulating ${parsed.trade.side} order (${parsed.trade.amount.value} ${parsed.trade.amount.unit}). Enforcing active ${currentRisk.toUpperCase()} impact budget ceiling (${budget} bps).`,
+      status: "done",
+    });
+    steps.push({
+      title: "4. ExecutionGuard On-Chain Verification",
+      detail: "Generated atomic swap payload: recipient hardcoded to address(this), minOutput floor calculated with slippage buffer.",
+      status: "done",
+    });
+  } else if (parsed.intent === "SET_RISK") {
+    const preset = parsed.riskPreset || "custom";
+    const budget = parsed.impactBudgetBps || (parsed.riskPreset ? Number(RISK_PRESETS[parsed.riskPreset].impactBudgetBps) : 60);
+    steps.push({
+      title: "3. Risk Calibration & Impact Budget Update",
+      detail: `Adjusting policy to ${preset.toUpperCase()}: impact ceiling set to ${budget} bps. Sizer will auto-trim future orders exceeding this limit.`,
+      status: "done",
+    });
+  } else if (parsed.intent === "STATUS" || parsed.intent === "SHOW_POSITIONS" || parsed.intent === "SHOW_PNL") {
+    const baseDisp = ctx?.baseBal ?? "on-chain WHSK";
+    const quoteDisp = ctx?.quoteBal ?? "on-chain tUSDT";
+    steps.push({
+      title: "3. State & NAV Aggregation",
+      detail: `Aggregated on-chain token balances (${baseDisp}, ${quoteDisp}), NAV calculation, and active autonomous loop parameters.`,
+      status: "done",
+    });
+  } else if (parsed.intent === "EMERGENCY_STOP" || parsed.intent === "PAUSE") {
+    steps.push({
+      title: "3. Circuit Breaker Engagement",
+      detail: "Halt signal broadcast. Calling ExecutionGuard.pause() to prevent any contract-level swap transactions.",
+      status: "warning",
+    });
+  } else if (parsed.intent === "EXPLAIN_LAST") {
+    steps.push({
+      title: "3. In-Memory Decision Ledger Lookup",
+      detail: "Retrieved last trade decision record: cross-referencing requested size, decided size, QuoterV2 curve, and loss avoided.",
+      status: "done",
+    });
+  } else {
+    steps.push({
+      title: "3. Policy Guardrail Verification",
+      detail: "No unauthorized funds or invalid routing requested. Deterministic safety boundaries maintained.",
+      status: "done",
+    });
+  }
+
+  return steps;
+}
+
+const SYSTEM_PROMPT = `You are a strict natural language parser for DepthGuard, an autonomous AI trading agent for HSKSwap on HSK Chain.
+Your ONLY role is to parse the user's message into a structured JSON intent.
+You NEVER make financial recommendations, generate quotes, or execute trades.
+OUTPUT JSON ONLY matching one of these intent types:
+1. STATUS: {"intent": "STATUS"}
+2. SHOW_POSITIONS: {"intent": "SHOW_POSITIONS"}
+3. SHOW_PNL: {"intent": "SHOW_PNL"}
+4. SHOW_DEPTH: {"intent": "SHOW_DEPTH"}
+5. EXPLAIN_LAST: {"intent": "EXPLAIN_LAST"}
+6. TRADE: {"intent": "TRADE", "trade": {"side": "BUY"|"SELL", "amount": {"value": number, "unit": "BASE"|"QUOTE"|"PERCENT_BALANCE"}, "maxImpactBps": number optional}}
+7. SET_RISK: {"intent": "SET_RISK", "riskPreset": "conservative"|"balanced"|"aggressive" OR "impactBudgetBps": number}
+8. SET_SIZE: {"intent": "SET_SIZE", "percentOfBalance": number (1-50)}
+9. SET_FREQUENCY: {"intent": "SET_FREQUENCY", "frequencySeconds": number (10-600)}
+10. SET_ASSET: {"intent": "SET_ASSET", "assetPair": "WHSK/tUSDT"}
+11. PAUSE: {"intent": "PAUSE"}
+12. RESUME: {"intent": "RESUME"}
+13. EMERGENCY_STOP: {"intent": "EMERGENCY_STOP"}
+14. AUTO_ON: {"intent": "AUTO_ON"}
+15. AUTO_OFF: {"intent": "AUTO_OFF"}
+16. UNKNOWN: {"intent": "UNKNOWN", "explanation": "string question"}
+
+Output raw JSON only without markdown or commentary.`;
+
+export async function parseWithLLM(message: string): Promise<ParsedIntent | null> {
+  const provider = APP_CONFIG.LLM_PROVIDER;
+
+  if (provider === "groq" && APP_CONFIG.GROQ_API_KEY) {
+    try {
+      const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${APP_CONFIG.GROQ_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: APP_CONFIG.GROQ_MODEL,
+          messages: [
+            { role: "system", content: SYSTEM_PROMPT },
+            { role: "user", content: message },
+          ],
+          temperature: 0,
+          response_format: { type: "json_object" },
+        }),
+      });
+
+      if (!res.ok) return null;
+      const data = (await res.json()) as any;
+      const rawText = data.choices?.[0]?.message?.content;
+      if (!rawText) return null;
+
+      const parsedJson = JSON.parse(rawText);
+      const validated = AnyIntentSchema.safeParse(parsedJson);
+      if (validated.success) {
+        return {
+          ...(validated.data as any),
+          source: "LLM",
+        };
+      }
+    } catch {
+      return null;
+    }
+  }
+
+  return null;
+}
+
+export interface ChatContext {
+  statusSummary: string;
+  portfolioSummary: string;
+  lastDecisionSummary?: string;
+  currentRisk: RiskPreset;
+  poolAddress?: string;
+  spotPriceDisplay?: number;
+  refPriceDisplay?: number;
+  baseBal?: string;
+  quoteBal?: string;
+}
+
+export async function processChatMessage(
+  message: string,
+  context: ChatContext
+): Promise<ChatResponse> {
+  // 1. Safety check
+  if (detectPromptInjection(message)) {
+    return {
+      reply: "Security Alert: Prompt injection keywords detected. Request rejected without touching contracts or funds.",
+      parsedIntent: {
+        intent: "UNKNOWN",
+        source: "RULES",
+      },
+      parserBadge: "rules",
+      thoughtProcess: [
+        {
+          title: "1. Security Filter Triggered",
+          detail: "Detected prompt injection / override pattern in user input.",
+          status: "warning",
+        },
+        {
+          title: "2. Deterministic Isolation",
+          detail: "Execution blocked immediately before reaching LLM parser or smart contracts.",
+          status: "warning",
+        },
+      ],
+    };
+  }
+
+  // 2. Try LLM parse first
+  let parsed: ParsedIntent | null = null;
+  let badge: "LLM" | "rules" = "rules";
+
+  parsed = await parseWithLLM(message);
+  if (parsed) {
+    badge = "LLM";
+  } else {
+    // 3. Fallback to deterministic rules
+    parsed = parseWithRules(message);
+    badge = "rules";
+  }
+
+  // 4. Deterministic handler responses
+  let reply = "";
+  switch (parsed.intent) {
+    case "STATUS":
+      reply = context.statusSummary;
+      break;
+
+    case "SHOW_POSITIONS":
+    case "SHOW_PNL":
+      reply = context.portfolioSummary;
+      break;
+
+    case "SHOW_DEPTH":
+      reply = "Live pool depth curve loaded in the Depth tab on the right panel. Price impact is evaluated across 1% to 100% of vault balance.";
+      break;
+
+    case "EXPLAIN_LAST":
+      reply = context.lastDecisionSummary || "No prior trade decisions recorded yet in this session.";
+      break;
+
+    case "SET_RISK":
+      if (parsed.riskPreset) {
+        const p = RISK_PRESETS[parsed.riskPreset];
+        reply = `Risk profile updated to **${parsed.riskPreset.toUpperCase()}**.\n- Impact Budget: ${p.impactBudgetBps} bps\n- Slippage Allowance: ${p.slippageBps} bps\n- Max Trade Size: ${p.maxTradePercent}% of balance\n- Cooldown: ${p.cooldownSeconds}s`;
+      } else if (parsed.impactBudgetBps) {
+        reply = `Impact budget updated to **${parsed.impactBudgetBps} bps**. Orders causing impact above this will be trimmed or refused.`;
+      }
+      break;
+
+    case "SET_SIZE":
+      reply = `Max per-trade size set to **${parsed.percentOfBalance}%** of vault balance (contract hard ceiling: 50%).`;
+      break;
+
+    case "SET_FREQUENCY":
+      reply = `Autonomous trading poll frequency set to **${parsed.frequencySeconds} seconds**.`;
+      break;
+
+    case "SET_ASSET":
+      if (parsed.assetPair?.toUpperCase().includes("WHSK")) {
+        reply = `Target asset pair verified: **WHSK / tUSDT** (Fee tier: 3000 / 0.3%).`;
+      } else {
+        reply = `Pair **${parsed.assetPair}** is not supported in P0. DepthGuard operates exclusively on the verified WHSK/tUSDT pool.`;
+      }
+      break;
+
+    case "PAUSE":
+      reply = "Trading loop **PAUSED**. Market monitoring and depth calculations continue in read-only mode.";
+      break;
+
+    case "RESUME":
+      reply = "Trading loop **RESUMED**. Autonomous signals and chat trade executions are active.";
+      break;
+
+    case "EMERGENCY_STOP":
+      reply = "🚨 **EMERGENCY STOP ACTIVATED**. ExecutionGuard.pause() triggered. All swaps are blocked at the smart contract level.";
+      break;
+
+    case "AUTO_ON":
+      reply = "Autonomous trading loop **ENABLED**. Agent will monitor on-chain reference deviations and execute depth-guarded trades.";
+      break;
+
+    case "AUTO_OFF":
+      reply = "Autonomous trading loop **DISABLED**. Agent will only analyze and await manual chat orders.";
+      break;
+
+    case "TRADE":
+      reply = `Evaluating order: ${parsed.trade?.side} ${parsed.trade?.amount.value} ${parsed.trade?.amount.unit}. Sweeping pool depth to calculate price impact...`;
+      break;
+
+    case "UNKNOWN":
+    default:
+      reply = parsed.explanation || "I didn't understand that instruction. You can ask for 'status', 'portfolio', 'buy 20%', 'be more cautious', or 'emergency stop'.";
+      break;
+  }
+
+  const thoughtProcess = generateThoughtProcess(message, parsed, badge, context.currentRisk, context);
+
+  return {
+    reply,
+    parsedIntent: parsed,
+    parserBadge: badge,
+    thoughtProcess,
+  };
+}

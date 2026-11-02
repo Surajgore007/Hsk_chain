@@ -1,0 +1,25 @@
+{
+  "name": "depthguard",
+  "version": "1.0.0",
+  "description": "DepthGuard — Liquidity-Aware AI Trading Agent for HSKSwap",
+  "private": true,
+  "scripts": {
+    "test:contracts": "cd contracts && forge test",
+    "test:agent": "cd agent && npm test",
+    "test": "npm run test:contracts && npm run test:agent",
+    "build:contracts": "cd contracts && forge build",
+    "build:agent": "cd agent && npm run build",
+    "build:web": "cd web && npm run build",
+    "build": "npm run build:contracts && npm run build:agent && npm run build:web",
+    "start:agent": "cd agent && npm start",
+    "dev:agent": "cd agent && npm run dev",
+    "dev:web": "cd web && npm run dev",
+    "dev": "concurrently -n \"agent,web\" -c \"green,blue\" \"npm run dev:agent\" \"npm run dev:web\"",
+    "demo": "cd agent && npx tsx ../scripts/demo.ts",
+    "setup": "cd agent && npx tsx ../scripts/setup-testnet.ts",
+    "mover": "cd agent && npx tsx ../scripts/mover.ts"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.6"
+  }
+}

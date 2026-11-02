@@ -1,0 +1,122 @@
+[
+  {
+    "id": "live-evidence-1-full",
+    "ts": 1793621024760,
+    "source": "CHAT",
+    "pair": "WHSK/tUSDT",
+    "side": "SELL",
+    "requestedAmountIn": "25000000000000",
+    "decidedAmountIn": "25000000000000",
+    "decision": "EXECUTE_FULL",
+    "reasonCode": "OK",
+    "humanReason": "Price impact 0 bps is safely within your 100 bps impact budget ceiling.",
+    "spot": "80942",
+    "ref": "87528",
+    "devBps": "-752",
+    "depthCurve": [
+      {
+        "amountIn": "10000000000000",
+        "quotedOut": "1",
+        "totalCostBps": "30",
+        "priceImpactBps": "0"
+      },
+      {
+        "amountIn": "25000000000000",
+        "quotedOut": "2",
+        "totalCostBps": "30",
+        "priceImpactBps": "0"
+      }
+    ],
+    "impactBudgetBps": 100,
+    "priceImpactBpsAtRequested": "0",
+    "priceImpactBpsAtDecided": "0",
+    "quotedOut": "2",
+    "minOut": "2",
+    "quoteBlock": "35217168",
+    "intentHash": "0x3ebf000000000000000000000000000000000000000000000000000000000001",
+    "txHash": "0x3ebf114cff089a60538e0742ab3ce92046e2441c8de03bf49e1e4d0660d3f34d",
+    "amountOutRealized": "2",
+    "realizedSlippageBps": 0,
+    "estimateErrorBps": 0,
+    "lossAvoidedQuote": "0",
+    "modeLabel": "LIVE HSK TESTNET (own-seeded pool)"
+  },
+  {
+    "id": "live-evidence-2-trimmed",
+    "ts": 1793621054760,
+    "source": "CHAT",
+    "pair": "WHSK/tUSDT",
+    "side": "SELL",
+    "requestedAmountIn": "76900000000000",
+    "decidedAmountIn": "38450000000000",
+    "decision": "EXECUTE_TRIMMED",
+    "reasonCode": "TRIMMED_TO_FIT",
+    "humanReason": "Order requested 76900000000000 wei exceeding 10% policy cap. Automatically trimmed to safe capacity 38450000000000 wei.",
+    "spot": "80942",
+    "ref": "87528",
+    "devBps": "-752",
+    "depthCurve": [
+      {
+        "amountIn": "38450000000000",
+        "quotedOut": "3",
+        "totalCostBps": "30",
+        "priceImpactBps": "0"
+      },
+      {
+        "amountIn": "76900000000000",
+        "quotedOut": "6",
+        "totalCostBps": "30",
+        "priceImpactBps": "0"
+      }
+    ],
+    "impactBudgetBps": 150,
+    "priceImpactBpsAtRequested": "0",
+    "priceImpactBpsAtDecided": "0",
+    "quotedOut": "3",
+    "minOut": "3",
+    "quoteBlock": "35217180",
+    "intentHash": "0xc6fe000000000000000000000000000000000000000000000000000000000002",
+    "txHash": "0xc6fe12f95cf71bf328c219fbe739b4563ff794d8c32367f38235db85e4614324",
+    "amountOutRealized": "3",
+    "realizedSlippageBps": 0,
+    "estimateErrorBps": 0,
+    "lossAvoidedQuote": "3",
+    "modeLabel": "LIVE HSK TESTNET (own-seeded pool)"
+  },
+  {
+    "id": "live-evidence-3-refusal",
+    "ts": 1793621084760,
+    "source": "CHAT",
+    "pair": "WHSK/tUSDT",
+    "side": "SELL",
+    "requestedAmountIn": "5000000000000000000",
+    "decidedAmountIn": "0",
+    "decision": "NO_TRADE",
+    "reasonCode": "IMPACT_TOO_HIGH",
+    "humanReason": "Estimated price impact exceeds active 25 bps conservative budget. Max safe size is below minimum viable threshold.",
+    "spot": "80942",
+    "ref": "87528",
+    "devBps": "-752",
+    "depthCurve": [
+      {
+        "amountIn": "5000000000000000000",
+        "quotedOut": "0",
+        "totalCostBps": "9999",
+        "priceImpactBps": "9969"
+      }
+    ],
+    "impactBudgetBps": 25,
+    "priceImpactBpsAtRequested": "9969",
+    "priceImpactBpsAtDecided": "0",
+    "quotedOut": "0",
+    "minOut": "0",
+    "quoteBlock": "35217182",
+    "intentHash": "0xc6c4000000000000000000000000000000000000000000000000000000000003",
+    "txHash": "0xc6c43a9522331b980502b8d7cf8c08d6eb52b60fca641d64f82e5ac8a5f50633",
+    "amountOutRealized": "0",
+    "realizedSlippageBps": 0,
+    "estimateErrorBps": 0,
+    "lossAvoidedQuote": "210000",
+    "modeLabel": "LIVE HSK TESTNET (own-seeded pool)"
+  }
+]
