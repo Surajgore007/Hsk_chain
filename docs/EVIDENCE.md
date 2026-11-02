@@ -102,3 +102,38 @@ Auditing previous transactions (`0x0bad6cdf...` and `0x1f692227...`):
    - **Tokens Moved**: `amountIn = 0, amountOut = 0`.
 
 **Explanation**: Both transactions called `recordRefusal` on-chain. Zero tokens were moved because the order was refused (`TradeRejected`). In previous UI versions, the success receipt was mislabeled as an "Execution Receipt"; it is now properly labeled as **"On-Chain Refusal Proof (TradeRejected)"**, and zero/insufficient-balance requests are strictly blocked upfront with `INSUFFICIENT_BALANCE` without displaying a Confirm button.
+
+---
+
+## 5. Live Production Deployment Verification (Vercel + Render)
+
+Fathom was deployed to public cloud infrastructure and verified end-to-end:
+
+- **Production Web Terminal (Vercel)**: [https://fathom-agent-dev.vercel.app](https://fathom-agent-dev.vercel.app)
+- **Autonomous Agent API (Render Web Service)**: [https://fathom-agent.onrender.com](https://fathom-agent.onrender.com)
+- **Live Mode**: `LIVE HSK TESTNET (own-seeded pool)` (Chain ID 133)
+
+### Live End-to-End Chat Executions via Production URLs
+
+1. **Live Executed Swap (`EXECUTE_FULL`)**:
+   - **User Chat Prompt**: `"sell 5% WHSK"`
+   - **Intent**: `TRADE` (Parsed via Groq LLaMA 3.3 70B)
+   - **Sizing Verdict**: `EXECUTE_FULL` (`OK`, 0 bps price impact within 60 bps budget)
+   - **On-Chain Transaction**: [`0xa360dcda6e6496d05e6a3adb5c577b979be3225eecb545f924f05af473e3c62e`](https://testnet-explorer.hskchain.net/tx/0xa360dcda6e6496d05e6a3adb5c577b979be3225eecb545f924f05af473e3c62e)
+   - **Confirmed in Block**: `35220461`
+   - **Gas Used**: `181,090` | **Status**: `SUCCESS (1)`
+
+2. **Live Refusal Proof (`NO_TRADE` / `TradeRejected`)**:
+   - **User Chat Prompt**: `"buy 10% WHSK"`
+   - **Intent**: `TRADE` (Parsed via Groq LLaMA 3.3 70B)
+   - **Sizing Verdict**: `NO_TRADE` (`IMPACT_TOO_HIGH`, 1,128 bps simulated impact > 60 bps ceiling)
+   - **On-Chain Refusal Tx**: [`0x7138067710845f3789441786a36bd58f15054d0bf5737ed797ed3d66fd72521d`](https://testnet-explorer.hskchain.net/tx/0x7138067710845f3789441786a36bd58f15054d0bf5737ed797ed3d66fd72521d)
+   - **Confirmed in Block**: `35220160`
+   - **Gas Used**: `29,132` | **Status**: `SUCCESS (1)`
+
+3. **Live 5-Point QuoterV2 Depth Curve Sweep**:
+   - Point 1: `25000000000000` wei -> `1` micro-USDT (0 bps impact - Safe Zone)
+   - Point 2: `50000000000000` wei -> `3` micro-USDT (0 bps impact - Safe Zone)
+   - Point 3: `125000000000000` wei -> `9` micro-USDT (0 bps impact - Safe Zone)
+   - Point 4: `250000000000000` wei -> `19` micro-USDT (0 bps impact - Safe Zone)
+   - Point 5: `500000000000000` wei -> `38` micro-USDT (226 bps impact - Refusal Zone)
