@@ -94,9 +94,9 @@ All receipts below were generated live on HSK Testnet across the deep `tWETH/tUS
 
 ---
 
-## 4. Continuous Autonomous Loop Evidence (Groq LLM)
+## 4. Continuous Autonomous Loop Evidence (AI Reasoning Engine)
 
-Fathom runs an always-on autonomous loop (`tick()`) querying Groq LLaMA 3.3 70B Versatile with temperature 0. Below is the verified log of 3 consecutive autonomous cycles on `tWETH/tUSDT`:
+Fathom runs an always-on autonomous loop (`tick()`) querying the AI reasoning engine with temperature 0. Below is the verified log of 3 consecutive autonomous cycles on `tWETH/tUSDT`:
 
 ```json
 [

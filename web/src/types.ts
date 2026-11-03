@@ -149,6 +149,7 @@ export interface VerifyData {
   autoEnabled: boolean;
   isPaused: boolean;
   currentRisk: string;
-  groqApiConfigured: boolean;
+  neuralEngineConfigured?: boolean;
+  groqApiConfigured?: boolean;
 }
 

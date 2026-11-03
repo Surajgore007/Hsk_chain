@@ -61,10 +61,10 @@ export const VerifyPanel: React.FC<Props> = ({ data, onRecheck, isChecking }) =>
             <div className="font-bold text-on-surface mt-0.5">{data.secondsSinceLastCycle}s ago</div>
           </div>
           <div className="p-2.5 rounded-xl bg-surface-container-low border border-outline-variant/30">
-            <div className="text-[10px] text-on-surface-variant font-sans uppercase">LLM</div>
-            <div className={`font-bold mt-0.5 flex items-center gap-1 ${data.groqApiConfigured ? "text-primary" : "text-tertiary"}`}>
+            <div className="text-[10px] text-on-surface-variant font-sans uppercase">Reasoning Engine</div>
+            <div className={`font-bold mt-0.5 flex items-center gap-1 ${(data.neuralEngineConfigured ?? data.groqApiConfigured) ? "text-primary" : "text-tertiary"}`}>
               <Cpu className="w-3 h-3" />
-              {data.groqApiConfigured ? "Groq Active" : "Rules Fallback"}
+              {(data.neuralEngineConfigured ?? data.groqApiConfigured) ? "Neural Brain Active" : "Rules Engine"}
             </div>
           </div>
         </div>

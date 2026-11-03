@@ -1823,6 +1823,7 @@ app.get("/api/verify", async (req: Request, res: Response) => {
     autoEnabled,
     isPaused,
     currentRisk,
+    neuralEngineConfigured: !!process.env.GROQ_API_KEY,
     groqApiConfigured: !!process.env.GROQ_API_KEY,
   });
 });

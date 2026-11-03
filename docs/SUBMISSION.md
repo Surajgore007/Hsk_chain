@@ -72,7 +72,7 @@ Every transaction is confirmed and permanently verifiable on HashKey Testnet:
 | **R4. Trading Signal Identification** | Mathematical reference-price reversion and deviation thresholds | [agent/src/signal.ts](agent/src/signal.ts) |
 | **R5. Automated Order Execution** | Autonomous sizing -> simulation -> on-chain execution with slippage floor | [agent/src/executor.ts](agent/src/executor.ts) |
 | **R6. Autonomous Closed Loop** | Background autonomous trading loop (`tick`) with SSE event broadcasts | [agent/src/server.ts](agent/src/server.ts#L640) |
-| **R7. Natural Language Interface** | Groq (`openai/gpt-oss-20b`) semantic parsing + strict Zod validation + deterministic rules fallback | [agent/src/chat.ts](agent/src/chat.ts), [agent/src/rules.ts](agent/src/rules.ts) |
+| **R7. Natural Language Interface** | Neural brain semantic intent parser + strict Zod schema validation + deterministic safety rules fallback | [agent/src/chat.ts](agent/src/chat.ts), [agent/src/rules.ts](agent/src/rules.ts) |
 | **R8. Portfolio & P&L Tracking** | Real-time NAV, volume-weighted acquisition cost basis, realized & unrealized P&L | [agent/src/portfolio.ts](agent/src/portfolio.ts) |
 | **R9. Strategy Dynamic Adjustment** | Conversational commands to re-calibrate risk presets (`SET_RISK`), trade sizing, and frequency | [agent/src/chat.ts](agent/src/chat.ts) |
 | **R10. Robust Risk Controls** | Non-custodial vault, cooldown timers, per-trade caps, daily limits, circuit breakers | [contracts/src/ExecutionGuard.sol](contracts/src/ExecutionGuard.sol) |

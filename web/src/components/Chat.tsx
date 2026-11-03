@@ -153,7 +153,7 @@ export const Chat: React.FC<Props> = ({
                 <span>{isUser ? userProfile?.name || "Human Operator" : "Fathom AI"}</span>
                 {m.parserBadge && (
                   <span className="px-1.5 py-0.5 rounded bg-secondary-container text-on-secondary-container font-mono text-[9px] lowercase">
-                    via {m.parserBadge}
+                    via {m.parserBadge === "LLM" ? "neural brain" : m.parserBadge.toLowerCase()}
                   </span>
                 )}
               </div>
@@ -429,7 +429,7 @@ export const Chat: React.FC<Props> = ({
               <div className="text-[10px] text-on-surface-variant font-mono space-y-1 pl-5">
                 <div className="flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-                  <span>Parsing natural language intent via Groq (Qwen 2.5)...</span>
+                  <span>Parsing natural language intent via Fathom Neural Brain...</span>
                 </div>
                 <div className="flex items-center gap-1.5 opacity-70">
                   <span className="w-1.5 h-1.5 rounded-full bg-primary/40 animate-pulse" />

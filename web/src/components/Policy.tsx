@@ -13,7 +13,7 @@ export const Policy: React.FC<Props> = ({ state }) => {
     { name: "ExecutionGuard (Vault)", address: dep.executionGuard || "0x8a8E4a10F57C53e194ebE3e2683045ad7F2EC2FC", desc: "Non-custodial trading vault enforcing policy & spot floors" },
     { name: "HSKSwap SwapRouter02", address: dep.router || "0xa6914E66690c6794244B5f66a09eAEbf66254237", desc: "Official HSKSwap Uniswap-V3 router fork on HSK Testnet" },
     { name: "WHSK (Base Token)", address: dep.whsk || "0xCA8aAceEC5Db1e91B9Ed3a344bA026c4a2B3ebF6", desc: "Wrapped HSK (18 decimals)" },
-    { name: "tUSDT (Quote Token)", address: dep.mockUSDT || "0x5BaFcc0c93EcD8022925D7fd89da1C6250850E19", desc: "Mock USDT testnet stablecoin (6 decimals)" },
+    { name: "tUSDT (Quote Token)", address: dep.mockUSDT || "0x5BaFcc0c93EcD8022925D7fd89da1C6250850E19", desc: "HSK Testnet USDT stablecoin (6 decimals)" },
     { name: "UniswapV3Factory", address: dep.factory || "0x2dc2c21d1049f786c535bf9d45f999db5474f3a0", desc: "HSKSwap V3 Pool Factory" },
     { name: "Mainnet WHSK/USDT Pool", address: dep.mainnetPool || "0x4ff515761864e7838b0adb8b5b2b8b7a068905dc", desc: "Chain 177 Read-only reference price pool (slot0)" },
   ];

@@ -102,7 +102,7 @@ export function App() {
         sender: "agent",
         text: `👋 Welcome${name ? `, ${name}` : ""} to Fathom — Liquidity-Aware AI Trading Agent on HSKSwap (HSK Testnet).\n\nI monitor pool liquidity via QuoterV2 and enforce hard price impact budgets before execution.\n\nTry typing: **status**, **buy 20%**, **be more cautious**, or **why did you refuse?**`,
         timestamp: Date.now(),
-        parserBadge: "LLM",
+        parserBadge: "AI Brain",
         thoughtProcess: [
           {
             title: "1. Agent Environment Initialized",
@@ -351,7 +351,7 @@ export function App() {
         sender: "agent",
         text: `✨ Setup complete, **${profile.name}**! Fathom is now calibrated:\n\n- **Profile:** ${profile.riskPreference.toUpperCase()}\n- **Impact Budget:** ${budget} bps cap\n- **Execution:** ${profile.executionMode === "manual" ? "Human Approval (Preview & Confirm)" : "Autonomous Auto-Execution"}\n\nType **status** to see live state, or **buy 20%** to try a trade.`,
         timestamp: Date.now(),
-        parserBadge: "LLM",
+        parserBadge: "AI Brain",
         thoughtProcess: [
           {
             title: "1. Profile Personalization Applied",

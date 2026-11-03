@@ -57,10 +57,10 @@ To adhere strictly to hackathon rules and scientific integrity, all modes in the
 | **R1** | Built on HSK Chain / HSKSwap | Smart vaults (`ExecutionGuard.sol`) route trades to HSKSwap `SwapRouter02` (`0xa6914E66...`) | ✅ Complete |
 | **R2** | Market Monitoring | Continuous poller queries pool state (`slot0`, liquidity) and reference prices for 3 target pairs | ✅ Complete |
 | **R3** | On-Chain Data Analysis | QuoterV2 depth curves, price-impact sweep, EMAs (12/26), crossover, rolling z-score, depth shrinkage | ✅ Complete |
-| **R4** | Trading-Signal Identification | Quantitative spread arbitrage + mean reversion signals exposed to Groq LLM brain | ✅ Complete |
+| **R4** | Trading-Signal Identification | Quantitative spread arbitrage + mean reversion signals processed by Fathom AI reasoning engine | ✅ Complete |
 | **R5** | Order Execution | Autonomous AI Proposer -> Deterministic Sizer -> ExecutionGuard vault -> HSKSwap router | ✅ Complete |
 | **R6** | Autonomous Closed Loop | Always-on autonomous execution loop running every 20-60s without human intervention (AUTO mode) | ✅ Complete |
-| **R7** | Natural-Language Interface | Conversational interface with Groq semantic intent parser + deterministic fallback | ✅ Complete |
+| **R7** | Natural-Language Interface | Conversational natural language intent parser + deterministic safety fallback | ✅ Complete |
 | **R8** | Real-Time Positions & P&L | Real-time NAV, weighted average cost basis, realized & unrealized P&L from contract logs | ✅ Complete |
 | **R9** | Dynamic Strategy Adjustment | Chat commands adjust sizing (`SET_SIZE`), cadence (`SET_FREQUENCY`), risk (`SET_RISK`), asset (`SET_ASSET`) | ✅ Complete |
 | **R10**| Risk Controls & Stop-Loss | Deterministic Stop-Loss (3%), Take-Profit (5%), Max Drawdown (8%), Daily-Loss limit (5%), Emergency Pause | ✅ Complete |
@@ -172,7 +172,7 @@ Fathom features a dual-experience architecture with smooth one-click transitions
 cd fathom
 cp .env.example .env
 ```
-Fill in your Groq or Gemini API key (optional; system includes automatic deterministic rules fallback).
+Fill in your AI API key (optional; system includes automatic deterministic rules fallback).
 
 ### Step 2: Start Agent Backend
 ```bash

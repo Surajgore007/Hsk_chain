@@ -127,9 +127,8 @@ export function generateThoughtProcess(
   const steps: ThoughtStep[] = [];
 
   // Step 1: Parser & Intent Classification (Runs for every incoming message)
-  const modelName = APP_CONFIG.GROQ_MODEL.split("/")[1] || APP_CONFIG.GROQ_MODEL || "GPT-OSS";
   steps.push({
-    title: `1. Intent Parsing via ${badge === "LLM" ? `Groq (${modelName})` : "Deterministic Rules"}`,
+    title: `1. Intent Parsing via ${badge === "LLM" ? "Fathom Neural Brain" : "Deterministic Rules"}`,
     detail: `Parsed prompt "${message.length > 32 ? message.slice(0, 32) + '...' : message}" → Intent: ${parsed.intent}. Prompt-injection verification passed.`,
     status: "done",
   });

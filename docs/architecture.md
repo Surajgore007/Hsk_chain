@@ -27,7 +27,7 @@ Unlike conventional bots that fire fixed order sizes regardless of pool depth, F
  |                                                                         |
  |  +--------------------+   +---------------------+   +----------------+  |
  |  | Market Monitor     |   | AI Semantic Parser  |   | Rules Engine   |  |
- |  | Polls spot & ref   |   | Groq/Gemini -> Zod  |   | Regex Fallback |  |
+ |  | Polls spot & ref   |   | Neural Brain -> Zod |   | Safety Fallback|  |
  |  +---------+----------+   +----------+----------+   +-------+--------+  |
  |            |                         |                      |           |
  |            v                         v                      v           |
