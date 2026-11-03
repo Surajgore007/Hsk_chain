@@ -9,6 +9,8 @@ interface Props {
   userProfile: UserProfile | null;
   onOpenProfile: () => void;
   onGoHome: () => void;
+  networkSource?: "testnet" | "mainnet";
+  onToggleNetworkSource?: (source: "testnet" | "mainnet") => void;
 }
 
 export const TopBar: React.FC<Props> = ({
@@ -18,6 +20,8 @@ export const TopBar: React.FC<Props> = ({
   userProfile,
   onOpenProfile,
   onGoHome,
+  networkSource = "testnet",
+  onToggleNetworkSource,
 }) => {
   const isReplay = state?.isReplayMode ?? false;
 
@@ -57,15 +61,40 @@ export const TopBar: React.FC<Props> = ({
         </button>
       </div>
 
-      {/* Center: network status */}
+      {/* Center: Market data source toggle */}
       <div className="flex items-center gap-2">
-        {/* Live ping */}
-        <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-surface-container border border-outline-variant/40 text-xs">
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
-          </span>
-          <span className="font-mono text-[11px] text-on-surface font-medium">HSK Testnet (133)</span>
+        <div className="flex items-center gap-0.5 p-0.5 rounded-xl bg-surface-container border border-outline-variant/40 text-[11px] font-mono">
+          <button
+            type="button"
+            onClick={() => onToggleNetworkSource?.("testnet")}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+              networkSource === "testnet"
+                ? "bg-surface-container-lowest text-primary font-bold shadow-soft"
+                : "text-on-surface-variant hover:text-on-surface"
+            }`}
+            title="HSK Testnet (Chain ID 133) — Live smart contract execution"
+          >
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
+            </span>
+            <span className="hidden sm:inline">HSK Testnet (133)</span>
+            <span className="sm:hidden">Testnet</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => onToggleNetworkSource?.("mainnet")}
+            className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+              networkSource === "mainnet"
+                ? "bg-surface-container-lowest text-tertiary font-bold shadow-soft"
+                : "text-on-surface-variant hover:text-on-surface"
+            }`}
+            title="HSK Mainnet (Chain ID 177) — Live pool depth & quotes (read-only)"
+          >
+            <span className="hidden sm:inline">HSK Mainnet</span>
+            <span className="sm:hidden">Mainnet</span>
+            <span className="text-[9px] font-sans px-1 rounded bg-surface-container-high text-on-surface-variant">read-only</span>
+          </button>
         </div>
 
         {/* Mode badge */}

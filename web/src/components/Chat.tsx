@@ -24,6 +24,8 @@ interface Props {
   currentRisk: "conservative" | "balanced" | "aggressive";
   onSelectRisk: (preset: "conservative" | "balanced" | "aggressive") => void;
   onTriggerMover: (action: "PUSH_PRICE_DOWN" | "PUSH_PRICE_UP") => void;
+  networkSource?: "testnet" | "mainnet";
+  cooldownRemainingSeconds?: number;
 }
 
 const QUICK_CHIPS = [
@@ -34,7 +36,7 @@ const QUICK_CHIPS = [
   "show signals",
   "be more cautious",
   "why did you refuse?",
-  "show positions",
+  "show pnl",
 ];
 
 export const Chat: React.FC<Props> = ({
@@ -46,6 +48,8 @@ export const Chat: React.FC<Props> = ({
   currentRisk,
   onSelectRisk,
   onTriggerMover,
+  networkSource = "testnet",
+  cooldownRemainingSeconds,
 }) => {
   const [input, setInput] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
@@ -302,6 +306,14 @@ export const Chat: React.FC<Props> = ({
                           <span className="text-on-surface-variant font-sans">Min Out Floor (Slippage):</span>
                           <span className="font-bold text-on-surface">{minOutFmt}</span>
                         </div>
+                        {card.netEdgeBps !== undefined && (
+                          <div className="col-span-2 border-t border-surface-container/60 pt-1.5 flex items-center justify-between text-[11px]">
+                            <span className="text-on-surface-variant font-sans">Net Edge Breakdown:</span>
+                            <span className={`font-bold ${card.netEdgeBps > 0 ? "text-primary" : "text-error"}`}>
+                              Spread {card.spreadBps ?? 0} − Fee {card.feeBps ?? 30} − Impact {card.priceImpactBpsAtDecided ?? 0} = {card.netEdgeBps > 0 ? `+${card.netEdgeBps}` : card.netEdgeBps} bps
+                            </span>
+                          </div>
+                        )}
                       </div>
 
                       {/* Button logic: NO_TRADE => NO confirm button */}
@@ -309,6 +321,10 @@ export const Chat: React.FC<Props> = ({
                         <div className="mt-1 p-2 rounded-lg bg-error-container/30 border border-error/30 text-on-error-container text-[11px] font-sans flex items-center gap-1.5">
                           <AlertTriangle className="w-3.5 h-3.5 text-error shrink-0" />
                           <span>Order Refused by Fathom Risk Engine ({card.reasonCode || "RISK_BUDGET_EXCEEDED"}). Execution blocked.</span>
+                        </div>
+                      ) : networkSource === "mainnet" ? (
+                        <div className="mt-1 p-2.5 rounded-lg bg-surface-container border border-outline-variant/40 text-on-surface-variant text-[11px] font-sans text-center">
+                          🔒 <strong>Read-Only Mode</strong>: Execution switches on when the mainnet vault is activated. Switch to HSK Testnet to execute on-chain.
                         </div>
                       ) : (
                         <div className="pt-1.5">
@@ -440,6 +456,20 @@ export const Chat: React.FC<Props> = ({
           </button>
         ))}
       </div>
+
+      {/* Cooldown Timer Alert if contract cooldown is active */}
+      {cooldownRemainingSeconds !== undefined && cooldownRemainingSeconds > 0 && (
+        <div className="px-4 py-1.5 bg-amber-500/10 border-t border-amber-500/20 text-amber-800 dark:text-amber-200 text-[11px] font-mono flex items-center justify-between shrink-0">
+          <span className="flex items-center gap-1.5">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />
+            </span>
+            <span>Contract cooldown active (ExecutionGuard floor)</span>
+          </span>
+          <span className="font-bold">{cooldownRemainingSeconds}s remaining</span>
+        </div>
+      )}
 
       {/* Docked Input Form */}
       <form onSubmit={handleSubmit} className="p-3 border-t border-surface-container bg-surface-container-lowest shrink-0">

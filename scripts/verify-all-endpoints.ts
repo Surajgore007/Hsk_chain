@@ -4,7 +4,7 @@
  */
 
 import { resolve } from "path";
-import { config as loadDotenv } from "dotenv";
+import { config as loadDotenv } from "../agent/node_modules/dotenv/lib/main.js";
 
 loadDotenv({ path: resolve(process.cwd(), ".env") });
 loadDotenv({ path: resolve(process.cwd(), "agent/.env") });
@@ -42,7 +42,9 @@ async function main() {
   await testRoute("Portfolio Tracker", "/api/portfolio");
   await testRoute("Technical Signals", "/api/signals");
   await testRoute("Risk Limits & Drawdown", "/api/risk");
-  await testRoute("Quoter Depth Curve", "/api/depth");
+  await testRoute("Quoter Depth Curve (Testnet)", "/api/depth");
+  await testRoute("Quoter Depth Curve (Mainnet Read-Only)", "/api/depth?network=mainnet");
+  await testRoute("Contract Verification Panel (/api/verify)", "/api/verify");
   await testRoute("Decisions Ledger", "/api/decisions?limit=5");
   await testRoute("Execution Scorecard", "/api/scorecard");
 
@@ -83,3 +85,4 @@ async function main() {
 }
 
 main().catch(console.error);
+

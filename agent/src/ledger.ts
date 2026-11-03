@@ -68,6 +68,8 @@ export interface DecisionRecord {
     signalsUsed?: string[];
   };
   aiRationale?: string;
+  feeBps?: number;
+  netEdgeBps?: number;
 }
 
 export interface ScorecardMetrics {

@@ -81,7 +81,29 @@ To adhere strictly to hackathon rules and scientific integrity, all modes in the
 | **tWBTC / tUSDT Pool (0.3%)** | `0x313BE070B6851F74C17bb866C2F82A26f41cc9e8` | Initialized ($350k Depth) | [View Pool](https://testnet-explorer.hskchain.net/address/0x313BE070B6851F74C17bb866C2F82A26f41cc9e8) |
 | **WHSK / tUSDT Pool (0.3%)** | `0xe0f494ef52eacebb42cdb11a03a2e9e43fbfdfaf` | Initialized & Funded | [View Pool](https://testnet-explorer.hskchain.net/address/0xe0f494ef52eacebb42cdb11a03a2e9e43fbfdfaf) |
 | **HSKSwap SwapRouter02** | `0xa6914E66690c6794244B5f66a09eAEbf66254237` | Official HSK Deploy | [View Router](https://testnet-explorer.hskchain.net/address/0xa6914E66690c6794244B5f66a09eAEbf66254237) |
-| **Mainnet WHSK/USDT Pool** | `0x4ff515761864e7838b0adb8b5b2b8b7a068905dc` | HSK Mainnet (177) | [View on Blockscout](https://hashkey.blockscout.com/address/0x4ff515761864e7838b0adb8b5b2b8b7a068905dc) |
+| **Mainnet WHSK/USDT Pool** | `0x4ff515761864e7838b0adb8b5b2b8b7a068905dc` | HSK Mainnet (177) | [View on Blockscout](https://hsk.blockscout.com/address/0x4ff515761864e7838b0adb8b5b2b8b7a068905dc) |
+
+---
+
+## 🔍 Verify It Yourself (In Seconds)
+
+Judges can verify every claim independently via live RPC reads or the terminal:
+
+1. **Verify Contract On-Chain Parameters (Live eth_call):**
+   ```bash
+   # Check vault paused state, owner, operator on HSK Testnet
+   curl https://fathom-agent.onrender.com/api/verify
+   ```
+2. **Verify Live Quoter Depth Curve:**
+   ```bash
+   curl https://fathom-agent.onrender.com/api/depth
+   # Read-only live mainnet liquidity curve:
+   curl "https://fathom-agent.onrender.com/api/depth?network=mainnet"
+   ```
+3. **Verify On-Chain Receipts:**
+   - `EXECUTE_FULL` — [Tx `0xdd5b48cf...`](https://testnet-explorer.hskchain.net/tx/0xdd5b48cf1ffb527582522778da51ca3fc76e1a7428ce0732df723e7f4c9a8979) (Block #35222224)
+   - `EXECUTE_TRIMMED` — [Tx `0xb35dbee0...`](https://testnet-explorer.hskchain.net/tx/0xb35dbee0beab3cf0e6b8180c55fbb6a4270bc78d5236686e0017a41490236aeb) (Block #35222296)
+   - `NO_TRADE / TradeRejected` — [Tx `0xdbc70b4f...`](https://testnet-explorer.hskchain.net/tx/0xdbc70b4fa1be24cc05dfbc8813faee7121ae43b17c2f6d0a797745778841029c) (Block #35222297)
 
 For complete transaction receipts, gas figures, and decoded event logs, see [docs/EVIDENCE.md](docs/EVIDENCE.md).
 

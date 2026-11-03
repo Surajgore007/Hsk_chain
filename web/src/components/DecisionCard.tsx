@@ -103,6 +103,20 @@ export const DecisionCard: React.FC<Props> = ({ decision }) => {
             {decision.minOut !== "0" ? decision.minOut : "None"}
           </div>
         </div>
+
+        {/* Net Edge — only show if available */}
+        {(decision as any).netEdgeBps !== undefined && (
+          <div className="p-2.5 rounded-xl bg-surface-container-low border border-outline-variant/30 col-span-2 sm:col-span-4">
+            <div className="text-[10px] text-on-surface-variant font-sans uppercase">Net Edge Breakdown</div>
+            <div className="font-bold text-on-surface mt-0.5 font-mono text-xs">
+              Spread {(decision as any).devBps ?? "?"}bps − Fee {(decision as any).feeBps ?? 30}bps − Impact {decision.priceImpactBpsAtDecided}bps = {" "}
+              <span className={(decision as any).netEdgeBps > 0 ? "text-primary" : "text-error"}>
+                {(decision as any).netEdgeBps > 0 ? "+" : ""}{(decision as any).netEdgeBps ?? "?"}bps
+              </span>
+              {(decision as any).netEdgeBps <= 0 && <span className="text-error font-sans text-[10px] ml-1">(refused — negative edge)</span>}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* On-Chain Evidence / Explorer Link */}
@@ -115,7 +129,7 @@ export const DecisionCard: React.FC<Props> = ({ decision }) => {
             </span>
           </div>
           <a
-            href={`https://testnet-explorer.hsk.xyz/tx/${decision.txHash}`}
+            href={`https://testnet-explorer.hskchain.net/tx/${decision.txHash}`}
             target="_blank"
             rel="noreferrer"
             className="inline-flex items-center gap-1 font-semibold text-primary hover:text-primary-container"

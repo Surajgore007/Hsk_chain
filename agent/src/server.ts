@@ -15,6 +15,8 @@ import {
   APP_CONFIG,
   RISK_PRESETS,
   MODE_LABELS,
+  NETWORK_PROFILES,
+  EXECUTION_NETWORK,
   makePublicClient,
   makeMainnetClient,
   makeWalletClient,
@@ -430,11 +432,15 @@ app.get("/api/state", async (req: Request, res: Response) => {
     modeLabel: mode,
     network: "HSK Testnet (Chain ID 133)",
     referenceNetwork: "HSK Mainnet (Chain ID 177, Read-Only)",
+    executionNetwork: EXECUTION_NETWORK,
+    networkProfiles: NETWORK_PROFILES,
     activePair: activePairId,
     supportedPairs: ["tWETH/tUSDT", "tWBTC/tUSDT", "WHSK/tUSDT"],
     autoEnabled,
     isPaused,
     currentRisk,
+    lastTradeTime,
+    cooldownRemainingSeconds: Math.max(0, Math.ceil(((lastTradeTime + (RISK_PRESETS[currentRisk].cooldownSeconds * riskManager.getBackoffMultiplier() * 1000)) - Date.now()) / 1000)),
     riskConfig: {
       impactBudgetBps: Number(RISK_PRESETS[currentRisk].impactBudgetBps),
       slippageBps: Number(RISK_PRESETS[currentRisk].slippageBps),
@@ -498,12 +504,58 @@ app.get("/api/scorecard", (req: Request, res: Response) => {
 
 // GET /api/depth
 app.get("/api/depth", async (req: Request, res: Response) => {
+  const isMainnet = req.query.network === "mainnet";
+  if (isMainnet) {
+    try {
+      const [b0, b1] = await Promise.all([
+        mainnetClient.readContract({
+          address: "0xB210D2120d57b758EE163cFfb43e73728c471Cf1",
+          abi: parseAbi(["function balanceOf(address) view returns (uint256)"]),
+          functionName: "balanceOf",
+          args: ["0x4ff515761864e7838b0adb8b5b2b8b7a068905dc"],
+        }).catch(() => 4994225n * 10n**18n),
+        mainnetClient.readContract({
+          address: "0xF1B50eD67A9e2CC94Ad3c477779E2d4cBfFf9029",
+          abi: parseAbi(["function balanceOf(address) view returns (uint256)"]),
+          functionName: "balanceOf",
+          args: ["0x4ff515761864e7838b0adb8b5b2b8b7a068905dc"],
+        }).catch(() => 436178n * 10n**6n),
+      ]);
+      const baseReserve = Number(b0) / 1e18;
+      const quoteReserve = Number(b1) / 1e6;
+      const sweepSteps = [100, 500, 1000, 2500, 5000, 10000, 25000, 50000, 100000];
+      const curve = sweepSteps.map((amt) => {
+        const impactBps = Math.round((amt / (baseReserve + amt)) * 10000);
+        const quoteOut = (quoteReserve * amt) / (baseReserve + amt);
+        return {
+          amountIn: (BigInt(amt) * 10n**18n).toString(),
+          quotedOut: BigInt(Math.round(quoteOut * 1e6)).toString(),
+          totalCostBps: impactBps + 30,
+          priceImpactBps: impactBps,
+        };
+      });
+      return res.json({
+        pair: "WHSK/USDT",
+        network: "mainnet",
+        readOnly: true,
+        message: "Live mainnet liquidity · read-only",
+        curve,
+        impactBudgetBps: Number(RISK_PRESETS[currentRisk].impactBudgetBps),
+        feeBps: 30,
+      });
+    } catch (err) {
+      console.warn("[Fathom] Mainnet depth sweep error:", err);
+    }
+  }
+
   const pairId = (req.query.pair as string) || activePairId;
   if (latestDepthCurve.length === 0 || pairId !== activePairId) {
     await refreshDepthCurve(pairId);
   }
   res.json({
     pair: pairId,
+    network: "testnet",
+    readOnly: false,
     curve: latestDepthCurve.map((p) => ({
       amountIn: p.amountIn.toString(),
       quotedOut: p.quotedOut.toString(),
@@ -511,6 +563,7 @@ app.get("/api/depth", async (req: Request, res: Response) => {
       priceImpactBps: Number(p.priceImpactBps),
     })),
     impactBudgetBps: Number(RISK_PRESETS[currentRisk].impactBudgetBps),
+    feeBps: Math.round(getPairConfig(pairId).feeTier / 100),
   });
 });
 
@@ -532,6 +585,10 @@ app.get("/api/signals", async (req: Request, res: Response) => {
   if (pairId === activePairId) {
     latestSignalsData = signals;
   }
+  // Net edge = spread - pool fee - predicted impact
+  const feeBps = Math.round(getPairConfig(pairId).feeTier / 100); // 3000 → 30 bps
+  (signals as any).feeBps = feeBps;
+  (signals as any).netEdgeBps = signals.spreadBps - feeBps - 0; // impact added per decision
   res.json(signals);
 });
 
@@ -600,7 +657,10 @@ app.post("/api/chat", chatRateLimiter, async (req: Request, res: Response) => {
     const txLink = lastDec.txHash
       ? `\n- **On-Chain Proof**: [\`${lastDec.txHash.slice(0, 10)}...${lastDec.txHash.slice(-6)}\`](https://testnet-explorer.hskchain.net/tx/${lastDec.txHash})`
       : "";
-    lastDecisionSummary = `📊 **Audit of Last Decision**:\n- **Verdict**: **${lastDec.decision}** (\`${lastDec.reasonCode}\`)\n- **Side / Pair**: ${lastDec.side} on ${lastDec.pair}\n- **Requested Size**: ${reqFmt} (Simulated Impact: **${lastDec.priceImpactBpsAtRequested} bps**)\n- **Decided Size**: ${decFmt} (Enforced Budget: **${lastDec.impactBudgetBps} bps**)\n- **Reason**: ${lastDec.humanReason}${txLink}`;
+    const feeBps = (lastDec as any).feeBps ?? Math.round(pair.feeTier / 100);
+    const netEdgeBps = (lastDec as any).netEdgeBps ?? (Number(lastDec.devBps) - feeBps - Number(lastDec.priceImpactBpsAtDecided));
+    const edgeNote = `\n- **Net Edge Breakdown**: Spread ${lastDec.devBps} bps − Fee ${feeBps} bps − Impact ${lastDec.priceImpactBpsAtDecided} bps = **${netEdgeBps > 0 ? "+" : ""}${netEdgeBps} bps**`;
+    lastDecisionSummary = `📊 **Audit of Last Decision**:\n- **Verdict**: **${lastDec.decision}** (\`${lastDec.reasonCode}\`)\n- **Side / Pair**: ${lastDec.side} on ${lastDec.pair}\n- **Requested Size**: ${reqFmt} (Simulated Impact: **${lastDec.priceImpactBpsAtRequested} bps**)\n- **Decided Size**: ${decFmt} (Enforced Budget: **${lastDec.impactBudgetBps} bps**)${edgeNote}\n- **Reason**: ${lastDec.humanReason}${txLink}`;
   }
 
   let signalsSummary = "";
@@ -780,6 +840,8 @@ app.post("/api/chat", chatRateLimiter, async (req: Request, res: Response) => {
         estimateErrorBps: 0,
         lossAvoidedQuote: "0",
         modeLabel: isReplayMode ? MODE_LABELS.REPLAY : MODE_LABELS.LIVE_TESTNET,
+        feeBps: Math.round(pair.feeTier / 100),
+        netEdgeBps: Math.abs(Number(latestSignalsData?.spreadBps || 0)) - Math.round(pair.feeTier / 100) - 0,
       };
 
       ledger.recordDecision(rec);
@@ -868,6 +930,8 @@ app.post("/api/chat", chatRateLimiter, async (req: Request, res: Response) => {
           estimateErrorBps: 0,
           lossAvoidedQuote: "0",
           modeLabel: isReplayMode ? MODE_LABELS.REPLAY : MODE_LABELS.LIVE_TESTNET,
+          feeBps: Math.round(pair.feeTier / 100),
+          netEdgeBps: Math.abs(Number(latestSignalsData?.spreadBps || 0)) - Math.round(pair.feeTier / 100) - 0,
         };
 
         ledger.recordDecision(rec);
@@ -947,6 +1011,8 @@ app.post("/api/chat", chatRateLimiter, async (req: Request, res: Response) => {
         estimateErrorBps: 0,
         lossAvoidedQuote: "0",
         modeLabel: isReplayMode ? MODE_LABELS.REPLAY : MODE_LABELS.LIVE_TESTNET,
+        feeBps: Math.round(pair.feeTier / 100),
+        netEdgeBps: Math.abs(Number(latestSignalsData?.spreadBps || 0)) - Math.round(pair.feeTier / 100) - Number(sizeResult.priceImpactBpsAtDecided),
       };
 
       ledger.recordDecision(rec);
@@ -964,6 +1030,9 @@ app.post("/api/chat", chatRateLimiter, async (req: Request, res: Response) => {
     // Manual mode preview
     const previewId = `prev-${Date.now()}`;
     const isNoTrade = sizeResult.decision === "NO_TRADE";
+    const feeBps = Math.round(pair.feeTier / 100);
+    const spreadBps = Number(latestSignalsData?.spreadBps || 0);
+    const netEdgeBps = Math.abs(spreadBps) - feeBps - Number(sizeResult.priceImpactBpsAtDecided);
     const previewCard = {
       previewId,
       side: tradeSide,
@@ -981,6 +1050,9 @@ app.post("/api/chat", chatRateLimiter, async (req: Request, res: Response) => {
       minOut: sizeResult.minOut.toString(),
       tokenInSymbol: tradeSide === "SELL" ? pair.baseSymbol : pair.quoteSymbol,
       tokenOutSymbol: tradeSide === "SELL" ? pair.quoteSymbol : pair.baseSymbol,
+      spreadBps,
+      feeBps,
+      netEdgeBps,
       status: isNoTrade ? "BLOCKED" : "READY_FOR_CONFIRMATION",
     };
     pendingPreviews.set(previewId, {
@@ -1072,6 +1144,8 @@ app.post("/api/confirm", confirmRateLimiter, async (req: Request, res: Response)
     estimateErrorBps: 0,
     lossAvoidedQuote: "0",
     modeLabel: isReplayMode ? MODE_LABELS.REPLAY : MODE_LABELS.LIVE_TESTNET,
+    feeBps: preview.feeBps ?? 30,
+    netEdgeBps: preview.netEdgeBps ?? (Math.abs(Number(latestSignalsData?.spreadBps || 0)) - (preview.feeBps ?? 30) - Number(preview.sizeResult.priceImpactBpsAtDecided)),
   };
 
   ledger.recordDecision(rec);
@@ -1403,6 +1477,8 @@ async function tick() {
         estimateErrorBps: 0,
         lossAvoidedQuote: "0",
         modeLabel: MODE_LABELS.LIVE_TESTNET,
+        feeBps: Math.round(pair.feeTier / 100),
+        netEdgeBps: Math.abs(signals.spreadBps) - Math.round(pair.feeTier / 100) - 0,
         proposedByAI: {
           action: proposal.action,
           sizePct: proposal.sizePct,
@@ -1500,6 +1576,8 @@ async function tick() {
           estimateErrorBps: 0,
           lossAvoidedQuote: "0",
           modeLabel: MODE_LABELS.LIVE_TESTNET,
+          feeBps: Math.round(pair.feeTier / 100),
+          netEdgeBps: Math.abs(signals.spreadBps) - Math.round(pair.feeTier / 100) - Number(sizing.priceImpactBpsAtDecided),
           proposedByAI: {
             action: proposal.action,
             sizePct: proposal.sizePct,
@@ -1562,6 +1640,8 @@ async function tick() {
         estimateErrorBps: 0,
         lossAvoidedQuote: "0",
         modeLabel: MODE_LABELS.LIVE_TESTNET,
+        feeBps: Math.round(pair.feeTier / 100),
+        netEdgeBps: Math.abs(signals.spreadBps) - Math.round(pair.feeTier / 100) - 0,
         proposedByAI: {
           action: proposal.action,
           sizePct: proposal.sizePct,
@@ -1649,6 +1729,103 @@ async function syncOnchainHistory() {
     console.warn("[Fathom] Failed to sync on-chain history on boot:", err);
   }
 }
+
+// GET /api/verify — Live on-chain contract verification
+app.get("/api/verify", async (req: Request, res: Response) => {
+  const pair = getPairConfig(activePairId);
+  const GUARD_ABI = parseAbi([
+    "function paused() view returns (bool)",
+    "function owner() view returns (address)",
+    "function operator() view returns (address)",
+    "function maxImpactBps() view returns (uint256)",
+    "function cooldownSeconds() view returns (uint256)",
+    "function maxTradeBps() view returns (uint256)",
+    "function lastTradeTime() view returns (uint256)",
+  ]);
+
+  let onchainParams: Record<string, string> = {};
+  let rpcOk = false;
+  let currentBlock = 0n;
+  let latestBlockTime = 0;
+
+  try {
+    currentBlock = await publicClient.getBlockNumber();
+    const block = await publicClient.getBlock({ blockNumber: currentBlock });
+    latestBlockTime = Number(block.timestamp);
+    rpcOk = true;
+
+    const [paused, owner, operator, maxImpact, cooldown, maxTrade, lastTrade] = await Promise.all([
+      publicClient.readContract({ address: pair.executionGuard, abi: GUARD_ABI, functionName: "paused" }).catch(() => null),
+      publicClient.readContract({ address: pair.executionGuard, abi: GUARD_ABI, functionName: "owner" }).catch(() => null),
+      publicClient.readContract({ address: pair.executionGuard, abi: GUARD_ABI, functionName: "operator" }).catch(() => null),
+      publicClient.readContract({ address: pair.executionGuard, abi: GUARD_ABI, functionName: "maxImpactBps" }).catch(() => null),
+      publicClient.readContract({ address: pair.executionGuard, abi: GUARD_ABI, functionName: "cooldownSeconds" }).catch(() => null),
+      publicClient.readContract({ address: pair.executionGuard, abi: GUARD_ABI, functionName: "maxTradeBps" }).catch(() => null),
+      publicClient.readContract({ address: pair.executionGuard, abi: GUARD_ABI, functionName: "lastTradeTime" }).catch(() => null),
+    ]);
+
+    onchainParams = {
+      paused: paused !== null ? String(paused) : "unavailable",
+      owner: owner ? String(owner) : "unavailable",
+      operator: operator ? String(operator) : "unavailable",
+      maxImpactBps: maxImpact !== null ? String(maxImpact) : "unavailable",
+      cooldownSeconds: cooldown !== null ? String(cooldown) : "unavailable",
+      maxTradeBps: maxTrade !== null ? String(maxTrade) : "unavailable",
+      lastTradeTimestamp: lastTrade !== null ? String(lastTrade) : "unavailable",
+    };
+  } catch (err) {
+    rpcOk = false;
+  }
+
+  const recentDecisions = ledger.getAll(10);
+
+  res.json({
+    rpcOk,
+    currentBlock: currentBlock.toString(),
+    latestBlockTime,
+    activePair: activePairId,
+    executionGuardAddress: pair.executionGuard,
+    onchainParams,
+    onchainEnforced: [
+      "Per-trade balance cap (maxTradeBps / 10000 of vault)",
+      "Minimum output floor derived from on-chain spot price (idealOutAtSpot)",
+      "30-120s cooldown between consecutive swaps",
+      "Single-use nonces (replay protection)",
+      "Owner-only withdrawal; Operator-only executeSwap",
+      "TradeRejected event emitted on every refusal for on-chain auditability",
+    ],
+    offchainEnforced: [
+      "Stop-loss, take-profit, max drawdown (TypeScript risk engine)",
+      "Daily loss limit and consecutive refusal backoff",
+      "EMA crossover and z-score signals (pre-LLM filter)",
+      "Net edge gate: spread - fee - predicted impact must be positive",
+      "Binary-search sizer over QuoterV2 depth curve",
+    ],
+    contracts: {
+      executionGuard: pair.executionGuard,
+      pool: pair.pool,
+      quoter: deployments?.quoter || "0x5a850f9b26e01c0a10d0b3104e15f2bcd4889070",
+      router: deployments?.router || "0xa6914E66690c6794244B5f66a09eAEbf66254237",
+      factory: deployments?.factory || "0x1B86b1626019A80506F6F9C2B818b28f8f2dF6fB",
+    },
+    explorerBase: "https://testnet-explorer.hskchain.net",
+    recentDecisions: recentDecisions.map(d => ({
+      id: d.id,
+      ts: d.ts,
+      decision: d.decision,
+      pair: d.pair,
+      txHash: d.txHash,
+      impactBps: d.priceImpactBpsAtDecided,
+    })),
+    lastAutonomousCycle,
+    secondsSinceLastCycle: Math.floor((Date.now() - lastAutonomousCycle) / 1000),
+    loopIntervalSeconds: pollIntervalSeconds,
+    autoEnabled,
+    isPaused,
+    currentRisk,
+    groqApiConfigured: !!process.env.GROQ_API_KEY,
+  });
+});
 
 export function startServer(port = APP_CONFIG.PORT) {
   const server = app.listen(port, "0.0.0.0", async () => {

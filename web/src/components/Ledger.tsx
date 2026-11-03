@@ -11,6 +11,43 @@ export const Ledger: React.FC<Props> = ({ decisions }) => {
 
   const filtered = decisions.filter((d) => (filter === "ALL" ? true : d.decision === filter));
 
+  const downloadLedgerJson = () => {
+    const json = JSON.stringify(decisions, null, 2);
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `fathom-ledger-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const downloadLedgerCsv = () => {
+    const headers = ["id", "timestamp", "decision", "reasonCode", "pair", "side", "requestedAmount", "decidedAmount", "impactBps", "budgetBps", "netEdgeBps", "txHash"];
+    const rows = decisions.map(d => [
+      d.id,
+      new Date(d.ts).toISOString(),
+      d.decision,
+      d.reasonCode,
+      d.pair,
+      d.side,
+      d.requestedAmountIn,
+      d.decidedAmountIn,
+      d.priceImpactBpsAtDecided,
+      d.impactBudgetBps,
+      d.netEdgeBps ?? "",
+      d.txHash || "",
+    ]);
+    const csv = [headers.join(","), ...rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(","))].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `fathom-ledger-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="bg-surface-container-lowest rounded-3xl border border-outline-variant/40 shadow-soft p-5 space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -40,6 +77,24 @@ export const Ledger: React.FC<Props> = ({ decisions }) => {
             </button>
           ))}
         </div>
+        <div className="flex items-center gap-1.5 self-start sm:self-auto">
+          <button
+            type="button"
+            onClick={downloadLedgerJson}
+            className="flex items-center gap-1 text-[10px] font-mono font-semibold px-2 py-1.5 rounded-xl bg-surface-container hover:bg-surface-container-high border border-outline-variant/40 text-on-surface-variant hover:text-on-surface transition-all cursor-pointer shadow-soft"
+            title="Download session ledger as JSON"
+          >
+            ↓ JSON
+          </button>
+          <button
+            type="button"
+            onClick={downloadLedgerCsv}
+            className="flex items-center gap-1 text-[10px] font-mono font-semibold px-2 py-1.5 rounded-xl bg-surface-container hover:bg-surface-container-high border border-outline-variant/40 text-on-surface-variant hover:text-on-surface transition-all cursor-pointer shadow-soft"
+            title="Download session ledger as CSV"
+          >
+            ↓ CSV
+          </button>
+        </div>
       </div>
 
       {filtered.length === 0 ? (
@@ -56,6 +111,7 @@ export const Ledger: React.FC<Props> = ({ decisions }) => {
                 <th className="py-2.5 px-3">Reason Code</th>
                 <th className="py-2.5 px-3">Req → Decided</th>
                 <th className="py-2.5 px-3">Impact / Budget</th>
+                <th className="py-2.5 px-3">Net Edge</th>
                 <th className="py-2.5 px-3 text-right">Explorer Proof</th>
               </tr>
             </thead>
@@ -88,10 +144,19 @@ export const Ledger: React.FC<Props> = ({ decisions }) => {
                     <td className="py-2 px-3 text-on-surface-variant">
                       <span className="font-bold text-on-surface">{d.priceImpactBpsAtDecided}</span> / {d.impactBudgetBps} bps
                     </td>
+                    <td className="py-2 px-3">
+                      {d.netEdgeBps !== undefined ? (
+                        <span className={`font-bold ${d.netEdgeBps > 0 ? "text-primary" : "text-error"}`}>
+                          {d.netEdgeBps > 0 ? `+${d.netEdgeBps}` : d.netEdgeBps} bps
+                        </span>
+                      ) : (
+                        <span className="text-on-surface-variant/50">—</span>
+                      )}
+                    </td>
                     <td className="py-2 px-3 text-right">
                       {d.txHash && d.txHash !== "0x0000000000000000000000000000000000000000000000000000000000000000" ? (
                         <a
-                          href={`https://testnet-explorer.hsk.xyz/tx/${d.txHash}`}
+                          href={`https://testnet-explorer.hskchain.net/tx/${d.txHash}`}
                           target="_blank"
                           rel="noreferrer"
                           className="inline-flex items-center gap-1 font-semibold text-primary hover:text-primary-container"

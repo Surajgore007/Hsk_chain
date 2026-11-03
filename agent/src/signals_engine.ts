@@ -33,6 +33,8 @@ export interface PairSignals {
   timestamp: number;
   blockNumber: number;
   strategyLabel: string;
+  feeBps?: number;
+  netEdgeBps?: number;
 }
 
 export class SignalsEngine {
@@ -144,7 +146,9 @@ export class SignalsEngine {
       liquidityRatioPct: Number(liquidityRatioPct.toFixed(2)),
       timestamp: ts,
       blockNumber,
-      strategyLabel: "Price-spread & Mean-reversion Demo Strategy (HSKSwap execution-guarded)",
+      strategyLabel: "Price-spread & Mean-reversion Strategy (HSKSwap execution-guarded)",
+      feeBps: 30,
+      netEdgeBps: Math.abs(spreadBps) - 30,
     };
   }
 

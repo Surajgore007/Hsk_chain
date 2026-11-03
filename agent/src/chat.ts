@@ -445,7 +445,7 @@ export async function processChatMessage(
 
     case "UNKNOWN":
     default:
-      reply = parsed.explanation || "I didn't understand that instruction. You can ask for 'status', 'portfolio', 'buy 20%', 'be more cautious', or 'emergency stop'.";
+      reply = "I didn't quite catch that. Here are some commands I understand:\n• **Trading:** `buy 20%`, `sell 10%`, `switch to tWETH`\n• **Risk & Sizing:** `be more cautious`, `set impact budget to 40 bps`, `stop loss 5%`\n• **Analytics:** `status`, `show pnl`, `show signals`, `why did you refuse?`\n• **Controls:** `auto on`, `auto off`, `emergency stop`";
       break;
   }
 

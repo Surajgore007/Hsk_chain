@@ -4,9 +4,10 @@ import type { DepthPoint } from "../types";
 interface Props {
   curve: DepthPoint[];
   budgetBps: number;
+  networkSource?: "testnet" | "mainnet";
 }
 
-export const DepthChart: React.FC<Props> = ({ curve, budgetBps }) => {
+export const DepthChart: React.FC<Props> = ({ curve, budgetBps, networkSource = "testnet" }) => {
   const points =
     curve.length > 0
       ? curve
@@ -53,11 +54,18 @@ export const DepthChart: React.FC<Props> = ({ curve, budgetBps }) => {
     <div className="bg-surface-container-lowest rounded-3xl border border-outline-variant/40 shadow-soft p-5 space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="font-headline text-sm font-semibold text-on-surface">
-            Pool Depth & Impact Curve
-          </h3>
+          <div className="flex items-center gap-2">
+            <h3 className="font-headline text-sm font-semibold text-on-surface">
+              Pool Depth & Impact Curve
+            </h3>
+            {networkSource === "mainnet" && (
+              <span className="px-2 py-0.5 rounded-md bg-tertiary-container text-on-tertiary-container font-mono text-[9px] font-bold border border-tertiary/30">
+                Live mainnet liquidity · read-only
+              </span>
+            )}
+          </div>
           <p className="font-body text-xs text-on-surface-variant">
-            Swept across vault balance via QuoterV2
+            {networkSource === "mainnet" ? "Calculated from live HSK Mainnet WHSK/USDT pool reserves" : "Swept across vault balance via QuoterV2"}
           </p>
         </div>
         <div className="flex items-center gap-3 text-xs font-mono">

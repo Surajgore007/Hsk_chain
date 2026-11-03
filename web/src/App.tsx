@@ -10,6 +10,8 @@ import { Portfolio } from "./components/Portfolio";
 import { Scorecard } from "./components/Scorecard";
 import { Ledger } from "./components/Ledger";
 import { Policy } from "./components/Policy";
+import { VerifyPanel } from "./components/VerifyPanel";
+import { StatusStrip } from "./components/StatusStrip";
 import type {
   AppState,
   PortfolioData,
@@ -18,10 +20,11 @@ import type {
   DepthPoint,
   ChatMessage,
   UserProfile,
+  VerifyData,
 } from "./types";
 
 type AppFlow = "HERO" | "ONBOARDING" | "LOADING" | "TERMINAL";
-type InspectorTab = "PROOF" | "DEPTH" | "PORTFOLIO" | "LEDGER" | "POLICY";
+type InspectorTab = "PROOF" | "DEPTH" | "PORTFOLIO" | "LEDGER" | "POLICY" | "VERIFY";
 
 // API Base URL from Vite env (supports Vercel frontend calling Render backend)
 const API_BASE = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
@@ -80,6 +83,10 @@ export function App() {
   const [depthCurve, setDepthCurve] = useState<DepthPoint[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
+  const [verifyData, setVerifyData] = useState<VerifyData | null>(null);
+  const [isVerifyChecking, setIsVerifyChecking] = useState(false);
+  const [networkSource, setNetworkSource] = useState<"testnet" | "mainnet">("testnet");
+
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
     const name = (() => {
       try {
@@ -113,18 +120,37 @@ export function App() {
   });
 
   // ── API helpers ───────────────────────────────────────────────────────────
+  const fetchVerify = async () => {
+    setIsVerifyChecking(true);
+    try {
+      const r = await fetch(`${API_BASE}/api/verify`).then(r => r.ok ? r.json() : null).catch(() => null);
+      if (r) setVerifyData(r);
+    } finally {
+      setIsVerifyChecking(false);
+    }
+  };
+
+  const fetchDepth = async (net: "testnet" | "mainnet") => {
+    try {
+      const url = net === "mainnet" ? `${API_BASE}/api/depth?network=mainnet` : `${API_BASE}/api/depth`;
+      const r = await fetch(url).then(r => r.ok ? r.json() : null).catch(() => null);
+      if (r?.curve) setDepthCurve(r.curve);
+    } catch {}
+  };
+
   const fetchData = async () => {
     const wakingTimer = setTimeout(() => {
       setIsBackendWaking(true);
     }, 3000);
 
     try {
+      const depthUrl = networkSource === "mainnet" ? `${API_BASE}/api/depth?network=mainnet` : `${API_BASE}/api/depth`;
       const [sRes, pRes, dRes, scRes, dpRes] = await Promise.all([
         fetch(`${API_BASE}/api/state`).then((r) => (r.ok ? r.json() : null)).catch(() => null),
         fetch(`${API_BASE}/api/portfolio`).then((r) => (r.ok ? r.json() : null)).catch(() => null),
         fetch(`${API_BASE}/api/decisions?limit=50`).then((r) => (r.ok ? r.json() : null)).catch(() => null),
         fetch(`${API_BASE}/api/scorecard`).then((r) => (r.ok ? r.json() : null)).catch(() => null),
-        fetch(`${API_BASE}/api/depth`).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+        fetch(depthUrl).then((r) => (r.ok ? r.json() : null)).catch(() => null),
       ]);
       if (sRes) setState(sRes);
       if (pRes) setPortfolio(pRes);
@@ -140,6 +166,7 @@ export function App() {
 
   useEffect(() => {
     fetchData();
+    fetchVerify();
 
     // 8-second polling timer — continuous updates without relying on SSE
     const pollInterval = setInterval(() => {
@@ -412,7 +439,15 @@ export function App() {
         userProfile={userProfile}
         onOpenProfile={handleOpenProfile}
         onGoHome={() => setFlow("HERO")}
+        networkSource={networkSource}
+        onToggleNetworkSource={(src) => {
+          setNetworkSource(src);
+          fetchDepth(src);
+        }}
       />
+
+      {/* Compact NAV, Balances, P&L & Circuit Breakers Strip */}
+      <StatusStrip state={state} portfolio={portfolio} networkSource={networkSource} />
 
       {/* Main terminal workspace — fills remaining viewport, no scroll */}
       <main className="flex-1 min-h-0 flex gap-3 p-3 overflow-hidden">
@@ -427,6 +462,8 @@ export function App() {
             currentRisk={state?.currentRisk ?? "balanced"}
             onSelectRisk={handleSelectRisk}
             onTriggerMover={triggerMover}
+            networkSource={networkSource}
+            cooldownRemainingSeconds={(state as any)?.cooldownRemainingSeconds}
           />
         </div>
 
@@ -435,7 +472,7 @@ export function App() {
           {/* Tab bar */}
           <div className="shrink-0 flex items-center justify-between px-3 py-2 border-b border-surface-container bg-surface-container-low/50">
             <div className="flex items-center gap-0.5">
-              {(["PROOF", "DEPTH", "PORTFOLIO", "LEDGER", "POLICY"] as const).map((tab) => (
+              {(["PROOF", "DEPTH", "PORTFOLIO", "LEDGER", "POLICY", "VERIFY"] as const).map((tab) => (
                 <button
                   key={tab}
                   type="button"
@@ -446,11 +483,13 @@ export function App() {
                       : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container"
                   }`}
                 >
-                  {tab === "PROOF" ? "Proof" : tab === "DEPTH" ? "Depth" : tab === "PORTFOLIO" ? "NAV" : tab === "LEDGER" ? "Ledger" : "Policy"}
+                  {tab === "PROOF" ? "Proof" : tab === "DEPTH" ? "Depth" : tab === "PORTFOLIO" ? "NAV" : tab === "LEDGER" ? "Ledger" : tab === "POLICY" ? "Policy" : "Verify"}
                 </button>
               ))}
             </div>
-            <span className="text-[10px] font-mono text-on-surface-variant pr-1">Chain 133</span>
+            <span className="text-[10px] font-mono text-on-surface-variant pr-1">
+              {networkSource === "mainnet" ? "Chain 177" : "Chain 133"}
+            </span>
           </div>
 
           {/* Inspector content — scrollable internally */}
@@ -466,6 +505,7 @@ export function App() {
               <DepthChart
                 curve={depthCurve.length > 0 ? depthCurve : (decisions[0]?.depthCurve || [])}
                 budgetBps={state?.riskConfig?.impactBudgetBps ?? 60}
+                networkSource={networkSource}
               />
             )}
             {activeTab === "PORTFOLIO" && <Portfolio portfolio={portfolio} />}
@@ -476,6 +516,9 @@ export function App() {
               </div>
             )}
             {activeTab === "POLICY" && <Policy state={state} />}
+            {activeTab === "VERIFY" && (
+              <VerifyPanel data={verifyData} onRecheck={fetchVerify} isChecking={isVerifyChecking} />
+            )}
           </div>
         </div>
       </main>

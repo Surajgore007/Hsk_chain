@@ -50,7 +50,37 @@ export const hskMainnetReadonly: Chain = {
     default: { http: [optional("RPC_MAINNET_READONLY", "https://mainnet.hsk.xyz")] },
     public:  { http: [optional("RPC_MAINNET_READONLY", "https://mainnet.hsk.xyz")] },
   },
+  blockExplorers: {
+    default: { name: "HSK Blockscout", url: "https://hsk.blockscout.com" },
+  },
 };
+
+export const NETWORK_PROFILES = {
+  testnet: {
+    chainId: 133,
+    name: "HSK Testnet",
+    rpcUrl: optional("RPC_TESTNET", "https://testnet.hsk.xyz"),
+    explorerBase: "https://testnet-explorer.hskchain.net",
+    mode: "execution" as const,
+    whsk: "0xCA8aAceEC5Db1e91B9Ed3a344bA026c4a2B3ebF6" as `0x${string}`,
+    mockUSDT: "0x721e7fa9fb2446be07ab4a708254f4adcb70e4cf" as `0x${string}`,
+    quoter: "0x5a850f9b26e01c0a10d0b3104e15f2bcd4889070" as `0x${string}`,
+    router: "0xa6914E66690c6794244B5f66a09eAEbf66254237" as `0x${string}`,
+    factory: "0x2dC2c21D1049F786C535bF9d45F999dB5474f3A0" as `0x${string}`,
+  },
+  mainnet: {
+    chainId: 177,
+    name: "HSK Mainnet (read-only)",
+    rpcUrl: optional("RPC_MAINNET_READONLY", "https://mainnet.hsk.xyz"),
+    explorerBase: "https://hsk.blockscout.com",
+    mode: "read-only" as const,
+    whsk: "0xB210D2120d57b758EE163cFfb43e73728c471Cf1" as `0x${string}`,
+    usdt: "0xF1B50eD67A9e2CC94Ad3c477779E2d4cBfFf9029" as `0x${string}`,
+    pool: "0x4ff515761864e7838b0adb8b5b2b8b7a068905dc" as `0x${string}`,
+  },
+} as const;
+
+export const EXECUTION_NETWORK = optional("EXECUTION_NETWORK", "testnet") as "testnet" | "mainnet";
 
 // Contracts — populated by scripts/setup-testnet and stored in deployments/testnet.json
 export function loadDeployments(): Deployments | null {

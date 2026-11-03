@@ -81,6 +81,8 @@ export interface DecisionRecord {
   estimateErrorBps?: number;
   lossAvoidedQuote?: string;
   modeLabel: string;
+  feeBps?: number;
+  netEdgeBps?: number;
 }
 
 export interface ScorecardMetrics {
@@ -120,5 +122,33 @@ export interface ChatMessage {
   previewCard?: any;
   decision?: DecisionRecord;
   thoughtProcess?: ThoughtStep[];
+}
+
+export interface VerifyData {
+  rpcOk: boolean;
+  currentBlock: string;
+  latestBlockTime: number;
+  activePair: string;
+  executionGuardAddress: string;
+  onchainParams: Record<string, string>;
+  onchainEnforced: string[];
+  offchainEnforced: string[];
+  contracts: Record<string, string>;
+  explorerBase: string;
+  recentDecisions: Array<{
+    id: string;
+    ts: number;
+    decision: string;
+    pair: string;
+    txHash?: string;
+    impactBps: string | number;
+  }>;
+  lastAutonomousCycle: number;
+  secondsSinceLastCycle: number;
+  loopIntervalSeconds: number;
+  autoEnabled: boolean;
+  isPaused: boolean;
+  currentRisk: string;
+  groqApiConfigured: boolean;
 }
 
