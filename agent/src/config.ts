@@ -198,7 +198,7 @@ export const APP_CONFIG = {
   RECORD_REFUSALS_ONCHAIN: optional("RECORD_REFUSALS_ONCHAIN", "auto") as "auto" | "always" | "never",
   LLM_PROVIDER:            optional("LLM_PROVIDER", "groq") as "groq" | "gemini",
   GROQ_API_KEY:            optional("GROQ_API_KEY", ""),
-  GROQ_MODEL:              optional("GROQ_MODEL", "llama-3.3-70b-versatile"),
+  GROQ_MODEL:              optional("GROQ_MODEL", "qwen/qwen3.8-27b"),
   GEMINI_API_KEY:          optional("GEMINI_API_KEY", ""),
   GEMINI_MODEL:            optional("GEMINI_MODEL", "gemini-1.5-flash"),
   PORT:                    parseInt(optional("PORT", "3001")),

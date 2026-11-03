@@ -311,6 +311,18 @@ export class DecisionLedger {
     return this.decisions[0];
   }
 
+  public getLatestRefusal(): DecisionRecord | undefined {
+    return this.decisions.find((d) => d.decision === "NO_TRADE");
+  }
+
+  public getLatestTrimmed(): DecisionRecord | undefined {
+    return this.decisions.find((d) => d.decision === "EXECUTE_TRIMMED");
+  }
+
+  public getLatestTradeAction(): DecisionRecord | undefined {
+    return this.decisions.find((d) => d.decision !== "HOLD");
+  }
+
   public getScorecard(): ScorecardMetrics {
     let executed = 0;
     let trimmed = 0;

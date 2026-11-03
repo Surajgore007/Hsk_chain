@@ -644,23 +644,51 @@ app.post("/api/chat", chatRateLimiter, async (req: Request, res: Response) => {
   const statusSummary = `Fathom Active. Mode: ${isReplayMode ? MODE_LABELS.REPLAY : MODE_LABELS.LIVE_TESTNET}. Auto: ${autoEnabled ? "ON" : "OFF"}. Risk: ${currentRisk.toUpperCase()} (${RISK_PRESETS[currentRisk].impactBudgetBps} bps budget). Target: ${activePairId}.`;
   const portfolioSummary = `Vault: ${baseBalDisp} / ${quoteBalDisp} | Spot: $${spotDisp} ${pair.quoteSymbol} | Ref: $${refDisp} ${pair.quoteSymbol}.`;
   
-  const lastDec = ledger.getLatest();
+  const lowerMsg = message.toLowerCase();
+  const isAskingRefusal = lowerMsg.includes("refus") || lowerMsg.includes("reject") || lowerMsg.includes("block");
+  const isAskingTrimmed = lowerMsg.includes("trim");
+  const isAskingTrade = lowerMsg.includes("trade") || lowerMsg.includes("order") || lowerMsg.includes("execute") || lowerMsg.includes("swap");
+
+  let targetDec: DecisionRecord | undefined = undefined;
+  if (isAskingRefusal) {
+    targetDec = ledger.getLatestRefusal() || ledger.getLatestTradeAction() || ledger.getLatest();
+  } else if (isAskingTrimmed) {
+    targetDec = ledger.getLatestTrimmed() || ledger.getLatestTradeAction() || ledger.getLatest();
+  } else if (isAskingTrade) {
+    targetDec = ledger.getLatestTradeAction() || ledger.getLatest();
+  } else {
+    // Default: prioritize latest actual trade/order action over routine background HOLD ticks
+    targetDec = ledger.getLatestTradeAction() || ledger.getLatest();
+  }
+
   let lastDecisionSummary: string | undefined = undefined;
-  if (lastDec) {
-    const isBuy = lastDec.side === "BUY";
+  if (isAskingRefusal && !ledger.getLatestRefusal()) {
+    lastDecisionSummary = "No orders have been refused yet in this session. All orders have complied with liquidity budgets or no trades have been attempted.";
+  } else if (targetDec) {
+    const isBuy = targetDec.side === "BUY";
+    const targetPair = getPairConfig(targetDec.pair) || pair;
     const reqFmt = isBuy
-      ? `${(Number(lastDec.requestedAmountIn) / 1e6).toFixed(4)} tUSDT`
-      : `${(Number(lastDec.requestedAmountIn) / Math.pow(10, pair.baseDecimals)).toFixed(4)} ${pair.baseSymbol}`;
+      ? `${(Number(targetDec.requestedAmountIn) / 1e6).toFixed(4)} tUSDT`
+      : `${(Number(targetDec.requestedAmountIn) / Math.pow(10, targetPair.baseDecimals)).toFixed(4)} ${targetPair.baseSymbol}`;
     const decFmt = isBuy
-      ? `${(Number(lastDec.decidedAmountIn) / 1e6).toFixed(4)} tUSDT`
-      : `${(Number(lastDec.decidedAmountIn) / Math.pow(10, pair.baseDecimals)).toFixed(4)} ${pair.baseSymbol}`;
-    const txLink = lastDec.txHash
-      ? `\n- **On-Chain Proof**: [\`${lastDec.txHash.slice(0, 10)}...${lastDec.txHash.slice(-6)}\`](https://testnet-explorer.hskchain.net/tx/${lastDec.txHash})`
+      ? `${(Number(targetDec.decidedAmountIn) / 1e6).toFixed(4)} tUSDT`
+      : `${(Number(targetDec.decidedAmountIn) / Math.pow(10, targetPair.baseDecimals)).toFixed(4)} ${targetPair.baseSymbol}`;
+    const txLink = targetDec.txHash
+      ? `\n- **On-Chain Proof**: [\`${targetDec.txHash.slice(0, 10)}...${targetDec.txHash.slice(-6)}\`](https://testnet-explorer.hskchain.net/tx/${targetDec.txHash})`
       : "";
-    const feeBps = (lastDec as any).feeBps ?? Math.round(pair.feeTier / 100);
-    const netEdgeBps = (lastDec as any).netEdgeBps ?? (Number(lastDec.devBps) - feeBps - Number(lastDec.priceImpactBpsAtDecided));
-    const edgeNote = `\n- **Net Edge Breakdown**: Spread ${lastDec.devBps} bps − Fee ${feeBps} bps − Impact ${lastDec.priceImpactBpsAtDecided} bps = **${netEdgeBps > 0 ? "+" : ""}${netEdgeBps} bps**`;
-    lastDecisionSummary = `📊 **Audit of Last Decision**:\n- **Verdict**: **${lastDec.decision}** (\`${lastDec.reasonCode}\`)\n- **Side / Pair**: ${lastDec.side} on ${lastDec.pair}\n- **Requested Size**: ${reqFmt} (Simulated Impact: **${lastDec.priceImpactBpsAtRequested} bps**)\n- **Decided Size**: ${decFmt} (Enforced Budget: **${lastDec.impactBudgetBps} bps**)${edgeNote}\n- **Reason**: ${lastDec.humanReason}${txLink}`;
+    const feeBps = (targetDec as any).feeBps ?? Math.round(targetPair.feeTier / 100);
+    const netEdgeBps = (targetDec as any).netEdgeBps ?? (Number(targetDec.devBps) - feeBps - Number(targetDec.priceImpactBpsAtDecided));
+    const edgeNote = `\n- **Net Edge Breakdown**: Spread ${targetDec.devBps} bps − Fee ${feeBps} bps − Impact ${targetDec.priceImpactBpsAtDecided} bps = **${netEdgeBps > 0 ? "+" : ""}${netEdgeBps} bps**`;
+
+    const title = targetDec.decision === "NO_TRADE"
+      ? "Audit of Last Refusal"
+      : targetDec.decision === "EXECUTE_TRIMMED"
+      ? "Audit of Last Trimmed Order"
+      : targetDec.decision === "EXECUTE_FULL"
+      ? "Audit of Last Execution"
+      : "Audit of Last Decision";
+
+    lastDecisionSummary = `📊 **${title}**:\n- **Verdict**: **${targetDec.decision}** (\`${targetDec.reasonCode}\`)\n- **Side / Pair**: ${targetDec.side} on ${targetDec.pair}\n- **Requested Size**: ${reqFmt} (Simulated Impact: **${targetDec.priceImpactBpsAtRequested} bps**)\n- **Decided Size**: ${decFmt} (Enforced Budget: **${targetDec.impactBudgetBps} bps**)${edgeNote}\n- **Reason**: ${targetDec.humanReason}${txLink}`;
   }
 
   let signalsSummary = "";
