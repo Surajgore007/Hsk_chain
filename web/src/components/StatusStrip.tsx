@@ -77,7 +77,9 @@ export const StatusStrip: React.FC<Props> = ({ state, portfolio, networkSource }
 
         <div className="hidden lg:flex items-center gap-1.5 text-[10px] text-on-surface-variant">
           <ShieldAlert className="w-3 h-3 text-tertiary shrink-0" />
-          <span>SL 5% / TP 10% / Max DD 15%</span>
+          <span>
+            SL {(state as any)?.riskLimits?.stopLossPct ?? 5}% / TP {(state as any)?.riskLimits?.takeProfitPct ?? 10}% / Max DD {(state as any)?.riskLimits?.maxDrawdownPct ?? 8}%
+          </span>
         </div>
       </div>
     </div>

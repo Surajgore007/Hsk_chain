@@ -382,7 +382,13 @@ export async function processChatMessage(
       break;
 
     case "SET_FREQUENCY":
-      reply = `Autonomous trading poll frequency set to **${parsed.frequencySeconds} seconds**.`;
+      if (parsed.frequencySeconds) {
+        reply = `Autonomous trading poll frequency set to **${parsed.frequencySeconds} seconds**.`;
+      } else if (parsed.frequencyMultiplier) {
+        reply = `Autonomous trading cadence updated to **${parsed.frequencyMultiplier >= 1.5 ? "slower (40s interval)" : "faster (15s interval)"}**.`;
+      } else {
+        reply = "Autonomous trading poll cadence updated.";
+      }
       break;
 
     case "SHOW_SIGNALS":
